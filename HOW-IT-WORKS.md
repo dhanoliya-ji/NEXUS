@@ -360,3 +360,13 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | Library warnings hidden | `runPython()` | `warnings.filterwarnings('ignore')`, so your results come first |
 
 Tested end to end on the live site with puppeteer: login, scikit-learn code then ▶ Run (accuracy printed), CSV then pandas then ▶ Run, save as note, notebook export.
+
+## 23. AI/ML study partner, part 5: roadmap, flashcards, interview practice
+
+| Feature | File | How |
+|---|---|---|
+| **🗺️ Roadmap** | `web/learn.js`, `web/learning.json` | 93 topics in 6 areas (Classic ML, Deep learning, Statistical ML, LLMs, Multimodal and GenAI…) imported from **alirezadir/AIMLInterviews** (MIT) by `scripts/import-learning.js`, refreshed monthly. Click ⚪ to go 🟡 → ✅ (saved in the `progress` table). Each area shows a % done and the next topic. 🎓 opens Explain mode on that topic |
+| **🃏 Flashcards** | `functions/api/cards.js`, `web/learn.js` | 🃏 under any answer, on a note or on a roadmap topic: a fast AI writes 5–10 question/answer cards (if one AI's reply can't be read, the next one tries). **FSRS** (`ts-fsrs`, MIT) runs in the browser: rate Again, Hard, Good or Easy and it calculates when you'd be about to forget the card |
+| **💼 Interview practice** | `web/learn.js` | Real questions in 3 categories (ML fundamentals, LLMs and GenAI, ML system design). Answer in chat and NEXUS grades it out of 10: what was good, what's missing, a model answer, and a follow-up question |
+
+Tested end to end on the live site with puppeteer: roadmap → mark topic → flashcards from topic → review and rate → interview question → graded answer.

@@ -124,6 +124,7 @@ async function openChat(id, title) {
 }
 
 function newChat() {
+  if (typeof interview !== "undefined") interview = null;   // leaving interview practice
   currentChatId = null;
   history = [];
   $("chatTitle").textContent = "";
@@ -182,7 +183,7 @@ function addMessage(role, text, model, images) {
       '<div class="body"><div class="content"></div>' +
       '<div class="meta"><span class="model"></span><button class="copy">Copy</button><button class="speak">🔊 Read</button>' +
       '<button class="up" title="Good answer">👍</button><button class="down" title="Bad answer (tell NEXUS why)">👎</button>' +
-      '<button class="again" title="Answer again with a different AI">🔄</button><button class="save-note" title="Save as a study note">🗒️ Save</button></div></div>';
+      '<button class="again" title="Answer again with a different AI">🔄</button><button class="save-note" title="Save as a study note">🗒️ Save</button><button class="make-cards" title="Make flashcards from this answer">🃏</button></div></div>';
     div.querySelector(".content").innerHTML = toHtml(text);
     div.querySelector(".model").textContent = model || "";
     div.dataset.label = model || "";
@@ -192,6 +193,7 @@ function addMessage(role, text, model, images) {
     div.querySelector(".down").onclick = () => sendFeedback(div, false);
     div.querySelector(".again").onclick = () => regenerate(div);
     div.querySelector(".save-note").onclick = () => saveAnswerAsNote(div);   // notes.js
+    div.querySelector(".make-cards").onclick = () => makeCards(div.dataset.raw || div.querySelector(".content").innerText, $("chatTitle").textContent.slice(0, 40) || "General");   // learn.js
     decorateCode(div);
   }
   $("messages").appendChild(div);
@@ -292,6 +294,11 @@ async function askAI(text, choice, images, extra) {
     chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images,
     skill: activeSkill ? activeSkill.id : null, skillPrompt: activeSkill ? activeSkill.prompt : null, ...(extra || {}),
   };
+  // 💼 Interview practice: grade the answer (learn.js)
+  if (typeof interview !== "undefined" && interview) {
+    body.skill = null;
+    body.skillPrompt = interviewPrompt();
+  }
   // 🎓 Explain mode = a teaching "skill" at the chosen level, answered by the normal router
   if (choice.startsWith("explain-")) {
     body.skill = null;

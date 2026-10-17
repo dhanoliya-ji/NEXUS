@@ -394,3 +394,13 @@ dialog.wide { width: min(720px, calc(100% - 32px)); }
 
 /* Diagrams shrink to fit their box (on screen and in PDFs) */
 .diagram-box svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+/* 🗺️ Roadmap + 🃏 flashcards */
+.roadmap-section h4 { margin: 14px 0 4px; font-family: var(--sans); font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.topic-row .status { font-size: 15px; }
+.topic-row button { border: 0; background: none; padding: 0 3px; }
+.flashcard { min-height: 140px; padding: 18px 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--sidebar); margin: 10px 0; }
+#cardBack { border-top: 1px dashed var(--border); margin-top: 12px; padding-top: 12px; }
+
+/* Links inside pop-up windows: readable in light and dark mode */
+dialog a { color: var(--primary); }

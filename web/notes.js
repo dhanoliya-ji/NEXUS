@@ -91,6 +91,7 @@ $("deleteNote").onclick = async () => {
 $("notePdf").onclick = () => { const n = currentNote(); exportPdf([{ title: n.title, markdown: n.content }], n.title); };
 $("noteDocx").onclick = () => { const n = currentNote(); exportDocx([{ title: n.title, markdown: n.content }], n.title); };
 $("noteMd").onclick = () => { const n = currentNote(); exportMarkdown([{ title: n.title, markdown: n.content }], n.title); };
+$("noteCards").onclick = () => { const n = currentNote(); makeCards(n.content, n.topic); };
 $("noteIpynb").onclick = () => { const n = currentNote(); exportNotebook([{ title: n.title, markdown: n.content }], n.title); };
 
 // Several ticked notes → one study guide (cover page + contents + every note)

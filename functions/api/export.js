@@ -3,7 +3,7 @@
 
 import { json } from "../../lib/db.js";
 
-const TABLES = ["chats", "messages", "profile", "facts", "notes", "docs", "doc_chunks", "skills", "chat_summaries", "reminders", "ratings", "lessons"];
+const TABLES = ["chats", "messages", "profile", "facts", "notes", "docs", "doc_chunks", "skills", "chat_summaries", "reminders", "ratings", "lessons", "progress", "cards"];
 
 export async function onRequestGet(context) {
   const db = context.env.DB;

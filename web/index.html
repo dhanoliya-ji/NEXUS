@@ -45,6 +45,9 @@
 
     <div class="sidebar-bottom">
       <button class="side-btn" id="openNotes">🗒️ Notes</button>
+      <button class="side-btn" id="openRoadmap">🗺️ Roadmap</button>
+      <button class="side-btn" id="openCards">🃏 Flashcards</button>
+      <button class="side-btn" id="openInterview">💼 Interview</button>
       <button class="side-btn" id="openDocs">📚 Documents</button>
       <button class="side-btn" id="openImages">🎨 Images</button>
       <button class="side-btn" id="openReminders">⏰ Reminders</button>
@@ -179,9 +182,49 @@
     <div id="notePreview" class="content"></div>
     <textarea id="noteEditor" hidden></textarea>
     <div class="row" style="justify-content:space-between;flex-wrap:wrap">
-      <span><button class="ghost" id="notePdf">📑 PDF</button> <button class="ghost" id="noteDocx">📄 Word</button> <button class="ghost" id="noteIpynb">📓 Notebook</button> <button class="ghost" id="noteMd">Markdown</button> <button class="ghost" id="deleteNote">🗑 Delete</button></span>
+      <span><button class="ghost" id="notePdf">📑 PDF</button> <button class="ghost" id="noteDocx">📄 Word</button> <button class="ghost" id="noteIpynb">📓 Notebook</button> <button class="ghost" id="noteCards">🃏 Cards</button> <button class="ghost" id="noteMd">Markdown</button> <button class="ghost" id="deleteNote">🗑 Delete</button></span>
       <span><button class="ghost" data-close>Close</button> <button class="primary" id="saveNote">Save note</button></span>
     </div>
+  </dialog>
+
+
+  <dialog id="roadmapBox" class="wide">
+    <h2>🗺️ AI/ML roadmap</h2>
+    <p class="muted" style="font-size:12px">Topics from <a href="https://github.com/alirezadir/AIMLInterviews" target="_blank">alirezadir/AIMLInterviews</a> (MIT). Click ⚪ to mark 🟡 learning → ✅ done. 🎓 = learn it with NEXUS, 🃏 = flashcards.</p>
+    <div id="roadmapTabs" class="skill-tabs"></div>
+    <p id="roadmapNext" class="muted"></p>
+    <div id="roadmapList" style="max-height:52vh;overflow-y:auto"></div>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
+  </dialog>
+
+  <dialog id="cardsBox">
+    <h2>🃏 Flashcards</h2>
+    <div id="decksArea">
+      <p id="cardsSummary" class="muted"></p>
+      <div id="decksList"></div>
+      <div class="row"><button class="ghost" data-close>Close</button><button class="primary" id="startReview">▶ Review now</button></div>
+    </div>
+    <div id="reviewArea" hidden>
+      <p class="muted" id="cardDeck"></p>
+      <div class="flashcard"><div id="cardFront" class="content"></div><div id="cardBack" class="content" hidden></div></div>
+      <div class="row" style="justify-content:center">
+        <button class="primary" id="showAnswer">Show answer</button>
+        <span id="rateButtons" hidden>
+          <button class="ghost" data-rating="1">😵 Again</button>
+          <button class="ghost" data-rating="2">😓 Hard</button>
+          <button class="ghost" data-rating="3">🙂 Good</button>
+          <button class="ghost" data-rating="4">😎 Easy</button>
+        </span>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="interviewBox">
+    <h2>💼 Interview practice</h2>
+    <p class="muted" style="font-size:12px">Real ML interview questions from <a href="https://github.com/alirezadir/AIMLInterviews" target="_blank">AIMLInterviews</a>. Answer in chat — NEXUS grades it /10, shows a model answer and asks a follow-up.</p>
+    <div class="form-row"><select id="interviewCat"></select><button class="ghost" id="newQuestion">🔀 Another question</button></div>
+    <div class="flashcard"><p id="interviewQ" class="content"></p></div>
+    <div class="row"><button class="ghost" data-close>Close</button><button class="primary" id="answerQuestion">✍️ Answer it</button></div>
   </dialog>
 
   <dialog id="docsBox">
@@ -316,5 +359,6 @@
   <script src="app.js"></script>
   <script src="exporter.js"></script>
   <script src="notes.js"></script>
+  <script src="learn.js"></script>
 </body>
 </html>
