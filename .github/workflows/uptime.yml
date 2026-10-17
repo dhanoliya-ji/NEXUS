@@ -1,0 +1,40 @@
+# ============================================================
+#  Uptime — every 30 minutes: is the NEXUS website up?
+# ============================================================
+#  Checks the home page and the login route (cheap — no AI quota used).
+#  Opens an issue when it's down and closes it when it's back.
+
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the site
+        id: check
+        env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+        run: |
+          home=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -A "NEXUS-uptime" "$NEXUS_URL/")
+          api=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -A "NEXUS-uptime" -X POST -H "content-type: application/json" -d '{"password":"-"}' "$NEXUS_URL/api/login")
+          echo "home=$home api=$api"
+          # the login route should answer 401 (wrong password) — that means it's alive
+          if [ "$home" = "200" ] && { [ "$api" = "401" ] || [ "$api" = "429" ]; }; then echo "up=yes" >> "$GITHUB_OUTPUT"; else echo "up=no" >> "$GITHUB_OUTPUT"; fi
+      - name: Open or close the "down" issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open=$(gh issue list --repo "${{ github.repository }}" --state open --search "in:title 🔴 NEXUS is down" --json number --jq '.[0].number')
+          if [ "${{ steps.check.outputs.up }}" = "no" ] && [ -z "$open" ]; then
+            gh issue create --repo "${{ github.repository }}" --title "🔴 NEXUS is down" --body "The website or API did not answer at $(date -u). This issue closes itself when it's back."
+          elif [ "${{ steps.check.outputs.up }}" = "yes" ] && [ -n "$open" ]; then
+            gh issue close "$open" --repo "${{ github.repository }}" --comment "🟢 Back up at $(date -u)."
+          fi

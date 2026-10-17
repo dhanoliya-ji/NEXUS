@@ -1,0 +1,51 @@
+# ============================================================
+#  Security — free scanners for public repos
+# ============================================================
+#  • Gitleaks: scans every push (and the whole history) for leaked API keys
+#  • OpenSSF Scorecard: weekly security score with tips (see the "Security" tab)
+#  (GitHub's own secret scanning, push protection and CodeQL are switched on in repo settings.)
+
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 3"       # Wednesday — Scorecard
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  gitleaks:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  scorecard:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ossf/scorecard-action@v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

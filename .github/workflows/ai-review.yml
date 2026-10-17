@@ -1,0 +1,54 @@
+# ============================================================
+#  AI code review — Google's Gemini CLI reviews every code push
+# ============================================================
+#  Uses google-github-actions/run-gemini-cli with your free GEMINI_API_KEY.
+#  It reads the latest change and opens an issue ONLY if it finds a real problem
+#  (bug, crash, security hole). Only runs for the repo owner (so strangers can't
+#  trigger it with tricky text).
+
+name: AI code review
+
+on:
+  push:
+    branches: [main]
+    paths: ["lib/**", "functions/**", "web/**", "scripts/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Save the latest change to a file
+        run: git diff HEAD~1 HEAD -- lib functions web scripts ':!web/skills-library.json' | head -c 80000 > change.diff
+      - name: Gemini reviews it
+        id: gemini
+        uses: google-github-actions/run-gemini-cli@v0
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: "true"
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: |
+            You review code changes for NEXUS, a personal AI assistant (vanilla JS website + Cloudflare Pages Functions + D1).
+            Read the file change.diff (the latest commit). Report ONLY real problems: bugs, crashes, broken logic,
+            security issues (leaked keys, XSS, SQL injection, missing auth), or data loss. Ignore style and naming.
+            If you find problems, reply with a short markdown list: file, what is wrong, how to fix.
+            If there are no real problems, reply with exactly: NO_ISSUES
+      - name: Open an issue if Gemini found problems
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW: ${{ steps.gemini.outputs.summary }}
+        run: |
+          echo "$REVIEW" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$REVIEW" ] && ! echo "$REVIEW" | grep -q "NO_ISSUES"; then
+            printf '%s\n\n_Commit: %s_' "$REVIEW" "${{ github.sha }}" > review.md
+            gh issue create --repo "${{ github.repository }}" --title "🤖 AI review: possible problem in latest change" --body-file review.md
+          fi

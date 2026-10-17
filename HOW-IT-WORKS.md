@@ -290,3 +290,19 @@ A GitHub Action (`update-skills.yml`) re-runs the script on the 1st of every mon
 4. **Write** the report from the condensed facts only, citing every claim as [n].
 
 It uses about 30 outside requests, within the free plan's limit of 50 per request. Condensing is spread across Groq, Cloudflare and Gemini so no single free limit runs out. The website turns odd citation styles like `【1†L1】` into `[1]`.
+
+## 17. Bots that maintain NEXUS (Phase 5)
+
+| Bot | When | What it does |
+|---|---|---|
+| **Check code** (`check.yml`) | every push | Syntax check plus a scan for leaked keys |
+| **Security** (`security.yml`) | every push, and Wednesdays | **Gitleaks** scans the history for keys; **OpenSSF Scorecard** gives a security score with tips |
+| GitHub **secret scanning + push protection + CodeQL** | always | Switched on in repo settings. A push containing a key is blocked, and the code is scanned for security bugs |
+| **AI code review** (`ai-review.yml`) | each code push by you | Google's **Gemini CLI** reads the change and opens an issue only if it finds a real bug |
+| **Model scout** (`model-scout.yml`, `scripts/scout-models.js`) | Sundays | Compares NEXUS's models with every provider's live list and the community list **mnfst/awesome-free-llm-apis**. Lists missing models (each one double-checked with a real request) and new free models |
+| **Weekly check + quality test** (`weekly-check.yml`, `functions/api/eval.js`) | Mondays | The Doctor checks every key. Then each AI answers 5 test questions, and another AI grades them 1–10 (MT-Bench / LLM-as-a-Judge). The score feeds the router |
+| **Uptime** (`uptime.yml`) | every 30 min | Opens an issue if the site is down and closes it when it's back |
+| **Update skills** (`update-skills.yml`) | monthly | Refreshes the skills library and opens a pull request |
+| **Deploy** (`deploy.yml`) | after checks pass | Puts the site live with Cloudflare's wrangler-action, once you add the token (see SETUP.md) |
+| **Dependabot** | monthly | Pull requests when a tool has an update |
+| **Reminders** (`reminders.yml`) | every 10 min | Sends due reminders to your phone |

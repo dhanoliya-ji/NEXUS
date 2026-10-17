@@ -70,3 +70,19 @@ ollama pull qwen3:4b
 ```
 
 When you run `npm run dev` on your laptop, NEXUS can also use Ollama models, so it works with no internet at all.
+
+## Optional: auto-deploy from GitHub
+
+When this is set up, every push to `main` that passes the checks goes live by itself, with no `npm run deploy`.
+1. Go to https://dash.cloudflare.com/profile/api-tokens → **Create Token**.
+2. Find the **"Edit Cloudflare Workers"** template, or click **Create Custom Token** and give it the permission **Account → Cloudflare Pages → Edit**.
+3. Copy the token.
+4. In GitHub, open **NEXUS → Settings → Secrets and variables → Actions → New repository secret**, and add:
+   - `CLOUDFLARE_API_TOKEN` = the token
+   - `CLOUDFLARE_ACCOUNT_ID` = your Account ID (the same as `CF_ACCOUNT_ID`)
+
+## Optional: make `npm run dev` work on your laptop again
+
+The meaning-search AI runs on Cloudflare, so the local test server needs a free "workers.dev" address on your account. You only do this once:
+1. Open https://dash.cloudflare.com → **Workers & Pages**.
+2. Pick any free subdomain name when asked, for example `gajendra`.

@@ -1,0 +1,37 @@
+# ============================================================
+#  Auto-deploy — every push to main that passes "Check code" goes live
+# ============================================================
+#  Uses Cloudflare's official wrangler-action. Needs two GitHub secrets
+#  (see SETUP.md): CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID.
+#  Without them this workflow just skips.
+
+name: Deploy to Cloudflare
+
+on:
+  workflow_run:
+    workflows: ["Check code"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Is auto-deploy set up?
+        id: ready
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: echo "ok=$([ -n "$TOKEN" ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        if: steps.ready.outputs.ok == 'yes'
+      - uses: cloudflare/wrangler-action@v4
+        if: steps.ready.outputs.ok == 'yes'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy --project-name nexus --branch main
