@@ -12,8 +12,10 @@ Open each link, sign up, create a key, and copy it somewhere safe. **Never share
 | 4 | **Z.ai (GLM)** | https://z.ai → API Keys | Free GLM Flash models, good at code |
 | 5 | **Mistral** | https://console.mistral.ai → choose the free **Experiment** plan → API Keys | Phone verification needed |
 | 6 | **Cerebras** | https://cloud.cerebras.ai → API Keys | Super fast |
-| 7 | **GitHub Models** | https://github.com/settings/personal-access-tokens → Fine-grained token → Permissions → **Models: Read** | Uses your GitHub account |
-| 8 | NVIDIA *(optional)* | https://build.nvidia.com → Get API Key | Kimi K2, Qwen3 Coder |
+| 7 | **NVIDIA NIM** | https://build.nvidia.com → sign in → open any model → **Get API Key** | Kimi K2, Qwen3 Coder. Key starts with `nvapi-` |
+| 8 | **Cloudflare Workers AI** | Account ID: https://dash.cloudflare.com → right side of the account home. Token: **My Profile → API Tokens → Create Token → "Workers AI" template** | 10,000 free units per day |
+
+GitHub Models was retired on July 30, 2026, so it is no longer used.
 
 ## Step 2: Put the keys in `.dev.vars`
 

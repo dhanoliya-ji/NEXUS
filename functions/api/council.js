@@ -10,7 +10,7 @@ import { getProvider, isReady, askModel, callModel } from "../../lib/providers.j
 import { getProfile, searchMemory, buildSystemPrompt } from "../../lib/memory.js";
 
 // Council members (first 3 that have keys are used)
-const MEMBERS = ["groq", "zai", "cerebras", "mistral", "gemini", "openrouter", "github", "nvidia"];
+const MEMBERS = ["groq", "zai", "nvidia", "cerebras", "mistral", "gemini", "openrouter"];
 // Who writes the final answer (first one with a key)
 const JUDGES = ["gemini", "groq", "zai", "mistral"];
 

@@ -14,7 +14,7 @@ export async function onRequestGet(context) {
     if (!isReady(p, env)) return { name: p.name, status: "no key", key: p.key };
     const started = Date.now();
     try {
-      await askModel(env, p, p.models[0], [{ role: "user", content: "Say OK" }], 5);
+      await askModel(env, p, p.models[0], [{ role: "user", content: "Say OK" }], 20);
       return { name: p.name, status: "ok", model: p.models[0], ms: Date.now() - started };
     } catch (e) {
       return { name: p.name, status: "error", model: p.models[0], error: e.message };
