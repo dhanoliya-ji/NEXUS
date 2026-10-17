@@ -264,35 +264,40 @@ async function askAI(text, choice, images) {
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
   else res = await api(SPECIAL_MODES.includes(choice) ? choice : "chat", "POST", body);
 
+  const showError = (message, details) => {
+    content.classList.remove("typing");
+    content.innerHTML = '<p class="error-text">⚠️ ' + (message || "Something went wrong") +
+      (details ? "<br><small>" + details.join("<br>") + "</small>" : "") + "</p>";
+    history.pop();
+  };
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    content.classList.remove("typing");
-    content.innerHTML = '<p class="error-text">⚠️ ' + (err.error || "Something went wrong") +
-      (err.details ? "<br><small>" + err.details.join("<br>") + "</small>" : "") + "</p>";
-    history.pop();
-    return;
+    return showError(err.error, err.details);
   }
 
-  // Info about the answer (sent by our backend in headers)
-  const modelName = decodeURIComponent(res.headers.get("x-nexus-model") || res.nexusModel || "");
-  const memCount = res.headers.get("x-nexus-memories") || res.nexusMemories;
-  const toolsUsed = res.headers.get("x-nexus-tools") || res.nexusTools;
-  const docsUsed = decodeURIComponent(res.headers.get("x-nexus-docs") || res.nexusDocs || "");
-  let info = modelName;
-  if (memCount > 0) info += " · used " + memCount + " memories";
-  if (docsUsed) info += " · 📚 " + docsUsed;
-  div.querySelector(".model").innerHTML = "";
-  div.querySelector(".model").textContent = info;
-  if (toolsUsed) {
-    const tag = document.createElement("span");
-    tag.className = "used-tools";
-    tag.textContent = " · 🛠 " + toolsUsed.replace(/_/g, " ");
-    div.querySelector(".model").appendChild(tag);
+  // "Who answered" line under the message. Our backend sends it as a nexus_info message
+  // in the stream; for 💻 My PC answers we already know it (res.nexusModel…).
+  let modelName = res.nexusModel || "";
+  function showInfo(i) {
+    modelName = i.model || "";
+    let text = modelName;
+    if (i.memories > 0) text += " · used " + i.memories + " memories";
+    if (i.docs) text += " · 📚 " + i.docs;
+    div.querySelector(".model").textContent = text;
+    if (i.tools) {
+      const tag = document.createElement("span");
+      tag.className = "used-tools";
+      tag.textContent = " · 🛠 " + i.tools.replace(/_/g, " ");
+      div.querySelector(".model").appendChild(tag);
+    }
   }
+  if (res.nexusModel) showInfo({ model: res.nexusModel, memories: res.nexusMemories, docs: res.nexusDocs, tools: res.nexusTools });
 
   // Read the stream. It arrives as lines like:  data: {"choices":[{"delta":{"content":"Hel"}}]}
+  // plus our own lines: nexus_status (what NEXUS is doing), nexus_info, nexus_error
   let answer = "";
   let thinking = "";
+  let failed = false;
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let leftover = "";
@@ -309,16 +314,24 @@ async function askAI(text, choice, images) {
       const data = line.slice(5).trim();
       if (data === "[DONE]") continue;
       try {
-        const delta = JSON.parse(data).choices[0].delta || {};
+        const msg = JSON.parse(data);
+        if (msg.nexus_status) {
+          if (!answer) content.innerHTML = '<span class="status"></span>', content.querySelector(".status").textContent = msg.nexus_status;
+          continue;
+        }
+        if (msg.nexus_info) { showInfo(msg.nexus_info); continue; }
+        if (msg.nexus_error) { failed = true; showError(msg.nexus_error, msg.details); continue; }
+        const delta = msg.choices[0].delta || {};
         if (delta.content) answer += delta.content;
         if (delta.reasoning_content || delta.reasoning) thinking += delta.reasoning_content || delta.reasoning;
       } catch (e) { /* not JSON, skip */ }
     }
 
-    showAnswer(div, answer, thinking);
+    if (!failed) showAnswer(div, answer, thinking);
     scrollDown();
   }
 
+  if (failed) return;
   content.classList.remove("typing");
   answer = answer.replace(/<think>[\s\S]*?<\/think>/, "").trim();   // don't save the thinking part
   div.dataset.raw = answer;
