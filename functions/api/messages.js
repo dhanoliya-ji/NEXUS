@@ -6,6 +6,7 @@
 
 import { saveMessage, json } from "../../lib/db.js";
 import { updateProfile } from "../../lib/memory.js";
+import { updateSummary } from "../../lib/summary.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
@@ -16,6 +17,7 @@ export async function onRequestPost(context) {
   // waitUntil = "do this after replying, don't make the user wait"
   if (role === "assistant" && userText) {
     context.waitUntil(updateProfile(env, userText, content).catch(() => {}));
+    context.waitUntil(updateSummary(env, chatId).catch(() => {}));   // only does work for long chats
   }
   return json({ ok: true });
 }

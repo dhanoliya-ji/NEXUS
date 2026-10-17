@@ -2,47 +2,31 @@
 //  POST /api/chat — the main brain: you send a message, NEXUS answers
 // ============================================================
 //  Steps:
-//   1. prepare: save your message, profile + memories + tools
-//   2. ask the best model; if it fails, try the next one (fallback)
-//   3. stream the answer back word by word
+//   1. pick the models to try (router)
+//   2. prepare: save your message, profile + memories + documents + tools + skill
+//   3. ask the models one by one until one answers, stream it back word by word
 
 import { json } from "../../lib/db.js";
 import { planRoute, planVision } from "../../lib/router.js";
-import { callModel } from "../../lib/providers.js";
 import { prepare, infoHeaders } from "../../lib/prepare.js";
+import { streamFirst } from "../../lib/run.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, model, tools, images } = await context.request.json();
+  const { chatId, messages, model, tools, images, skill } = await context.request.json();
   // messages = [{role:"user", content:"..."}, {role:"assistant", ...}, ...]
   // images   = ["data:image/jpeg;base64,...", ...]  (only for the newest message)
 
-  // Pictures need a model that can see; otherwise the normal router decides
+  // 1. Pictures need a model that can see; otherwise the normal router decides
   const hasImages = images && images.length > 0;
   const plan = hasImages ? planVision(env) : planRoute(env, messages, model);
   if (plan.length === 0) return json({ error: "No API keys found. Add keys to .dev.vars (see SETUP.md)." }, 400);
 
-  // 1. Save message + build instructions (tools are on unless the browser says false)
-  const prep = await prepare(env, chatId, messages, tools !== false, images);
+  // 2. Save message + build instructions
+  const prep = await prepare(env, chatId, messages, { tools: tools, images: images, skill: skill });
 
-  // 2. Try models one by one until one answers
-  const errors = [];
-  const skip = new Set();   // providers whose key is wrong or limit is reached
-  for (const step of plan) {
-    if (skip.has(step.provider.id)) continue;
-    try {
-      const res = await callModel(env, step.provider, step.model, prep.fullMessages, true);
-      if (res.ok) {
-        // 3. Pass the stream straight to your browser (no extra work here = fast + free)
-        return new Response(res.body, { headers: infoHeaders(step.provider.name + " · " + step.model, prep) });
-      }
-      errors.push(step.provider.name + " " + step.model + ": " + res.status);
-      // 401/403 = bad key, 429 = daily limit → other models of this provider will fail too
-      if ([401, 403, 429].includes(res.status)) skip.add(step.provider.id);
-    } catch (e) {
-      errors.push(step.provider.name + ": " + e.message);
-      skip.add(step.provider.id);   // timeout / network down
-    }
-  }
-  return json({ error: "All models failed", details: errors }, 502);
+  // 3. First model that works answers. Its stream goes straight to your browser.
+  const { res, step, errors } = await streamFirst(env, plan, prep.fullMessages);
+  if (!res) return json({ error: "All models failed", details: errors }, 502);
+  return new Response(res.body, { headers: infoHeaders(step.provider.name + " · " + step.model, prep) });
 }

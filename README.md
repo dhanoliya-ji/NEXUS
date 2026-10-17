@@ -16,6 +16,14 @@ NEXUS connects many free AI models (Groq, Gemini, GLM, Mistral, Cerebras, OpenRo
 | **Deep Research** | `/research topic`: plan → search → read 8 pages → report with [1] citations | gpt-researcher repo, STORM paper |
 | **💻 My PC models** | On your laptop, the website can also use Ollama models: private and offline | — |
 | **Image generation** | Type `/image a cat astronaut` | Pollinations.ai (free) |
+| **🎤 Voice + 🔊 read aloud** | Speak in Hindi or English (Groq Whisper), and NEXUS reads answers aloud | — |
+| **📎 Attachments** | Images (vision models), PDF, Word, code and text files | — |
+| **📚 Documents library** | Upload once; every chat searches the matching parts | RAG paper |
+| **✅ Careful mode** | One model drafts, another checks and fixes it | Chain-of-Verification, Reflexion papers |
+| **🧩 Skills** | Teacher, Coder, Hinglish, Quiz me… or make your own | REA skills, Voyager paper |
+| **📝 Long-chat summaries** | Older parts of long chats are summarized automatically | MemGPT paper |
+| **⬇️ Export** | Download a chat as Markdown or PDF | — |
+| **🤖 Weekly bot** | A GitHub Action checks every key each Monday and opens an issue if one breaks | — |
 | **Doctor** | Checks which API keys work | REA repo |
 | **Daily backup to D drive** | `local/backup.py` | — |
 | **Works on phone** | Open the link, then "Add to Home screen" | — |

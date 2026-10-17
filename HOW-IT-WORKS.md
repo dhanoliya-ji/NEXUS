@@ -136,6 +136,35 @@ Cloudflare can't reach your laptop, but your browser can.
 
 For this to work, Ollama must trust the site. The Windows setting `OLLAMA_ORIGINS` lists the NEXUS link, and models are stored on `D:\OllamaModels` (`OLLAMA_MODELS`).
 
+## 6e. Documents library (RAG): `functions/api/docs.js`
+
+1. Your browser turns the PDF or Word file into text (the same code as 📎).
+2. The server cuts it into parts of about 1,500 characters at paragraph ends and saves them in `doc_chunks`. A search index (`doc_chunks_fts`) updates itself through triggers.
+3. Before every answer, `searchDocs()` finds the 4 best-matching parts and adds them to the instructions with the document's name.
+
+Small parts work better than whole documents: NEXUS adds only the paragraphs that matter.
+
+## 6f. Careful mode (`functions/api/careful.js`)
+
+1. **Draft:** `askFirst()` gets an answer from the first model that works.
+2. **Check:** a **different** provider gets the draft with this instruction: *"check facts, logic, math, code, then write the corrected final answer."*
+
+It's slower, with two models instead of one, but it makes fewer mistakes.
+
+## 6g. Skills (`lib/skills.js`)
+
+A skill is extra instructions placed near the top of the system prompt. The built-in skills are a list in `lib/skills.js`, and your own skills are saved in the `skills` table. The browser remembers the active skill and sends its id with every message.
+
+## 6h. Long-chat summaries (`lib/summary.js`)
+
+1. After an answer, in the background, if the chat is longer than 40,000 characters, a helper model summarizes everything except the newest 12 messages.
+2. The summary is saved in `chat_summaries` and added to the instructions.
+3. So when a smaller model has to drop old messages (`trimToFit`), the important facts are still in the summary.
+
+## 6i. `lib/run.js`
+
+`streamFirst(plan, messages)` and `askFirst(...)` hold the "try each model until one works" loop, so chat, Careful mode and the others share it instead of copying it.
+
 ## 7. The website (`web/app.js`)
 
 | Function | What it does |

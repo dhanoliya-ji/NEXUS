@@ -217,7 +217,9 @@ async function send(text) {
 const WAITING = {
   council: "🏛️ Council is discussing…",
   research: "🔬 Researching the web: planning → searching → reading 8 pages → writing (about 30–60 s)…",
+  careful: "✅ Writing a draft, then double-checking it…",
 };
+const SPECIAL_MODES = ["council", "research", "careful"];
 
 // Ask the AI and show the answer word by word as it arrives
 //   choice = "auto" | "council" | "research" | "groq/model…" | "pc/qwen3:4b"
@@ -226,10 +228,13 @@ async function askAI(text, choice, images) {
   const content = div.querySelector(".content");
   content.classList.add("typing");
 
-  const body = { chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images };
+  const body = {
+    chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images,
+    skill: activeSkill ? activeSkill.id : null,
+  };
   let res;
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
-  else res = await api(choice === "council" || choice === "research" ? choice : "chat", "POST", body);
+  else res = await api(SPECIAL_MODES.includes(choice) ? choice : "chat", "POST", body);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -244,8 +249,10 @@ async function askAI(text, choice, images) {
   const modelName = decodeURIComponent(res.headers.get("x-nexus-model") || res.nexusModel || "");
   const memCount = res.headers.get("x-nexus-memories") || res.nexusMemories;
   const toolsUsed = res.headers.get("x-nexus-tools") || res.nexusTools;
+  const docsUsed = decodeURIComponent(res.headers.get("x-nexus-docs") || res.nexusDocs || "");
   let info = modelName;
   if (memCount > 0) info += " · used " + memCount + " memories";
+  if (docsUsed) info += " · 📚 " + docsUsed;
   div.querySelector(".model").innerHTML = "";
   div.querySelector(".model").textContent = info;
   if (toolsUsed) {
@@ -313,6 +320,7 @@ async function askMyPC(model, body) {
   res.nexusModel = "My PC · " + model;
   res.nexusMemories = ctx.memories;
   res.nexusTools = ctx.tools.join(", ");
+  res.nexusDocs = ctx.docs;
   return res;
 }
 
@@ -468,9 +476,17 @@ function shrinkImage(file) {
   });
 }
 
-// Show the waiting files as chips with an ✕ to remove
+// Show the active skill + waiting files as chips with an ✕ to remove
 function drawPending() {
   $("attachments").innerHTML = "";
+  if (activeSkill) {
+    const chip = document.createElement("span");
+    chip.className = "file-chip skill-chip";
+    chip.innerHTML = "<span></span><button title='Turn skill off'>✕</button>";
+    chip.querySelector("span").textContent = "🧩 " + activeSkill.icon + " " + activeSkill.name;
+    chip.querySelector("button").onclick = () => setSkill(null);
+    $("attachments").appendChild(chip);
+  }
   pending.forEach((f, i) => {
     const chip = document.createElement("span");
     chip.className = "file-chip";
@@ -481,6 +497,131 @@ function drawPending() {
     $("attachments").appendChild(chip);
   });
 }
+
+// ---------- 🧩 Skills ----------
+// The chosen skill is remembered in this browser and sent with every message.
+
+let activeSkill = null;
+try { activeSkill = JSON.parse(localStorage.getItem("nexus-skill")); } catch (e) { /* none */ }
+
+function setSkill(skill) {
+  activeSkill = skill ? { id: skill.id, icon: skill.icon, name: skill.name } : null;
+  localStorage.setItem("nexus-skill", JSON.stringify(activeSkill));
+  drawPending();
+}
+
+$("skillBtn").onclick = async () => {
+  $("skillsBox").showModal();
+  await drawSkills();
+};
+
+async function drawSkills() {
+  const skills = await (await api("skills")).json();
+  $("skillsList").innerHTML = "";
+  for (const s of skills) {
+    const card = document.createElement("button");
+    card.className = "skill-card" + (activeSkill && activeSkill.id === s.id ? " active" : "");
+    card.title = s.prompt;
+    card.textContent = s.icon + " " + s.name;
+    card.onclick = () => {
+      setSkill(activeSkill && activeSkill.id === s.id ? null : s);   // click again = turn off
+      $("skillsBox").close();
+    };
+    if (!s.builtin) {                     // your own skills can be deleted
+      const del = document.createElement("span");
+      del.className = "del";
+      del.textContent = "✕";
+      del.onclick = async (e) => {
+        e.stopPropagation();
+        if (!confirm("Delete skill " + s.name + "?")) return;
+        await api("skills/" + s.id, "DELETE");
+        if (activeSkill && activeSkill.id === s.id) setSkill(null);
+        drawSkills();
+      };
+      card.appendChild(del);
+    }
+    $("skillsList").appendChild(card);
+  }
+}
+
+$("saveSkill").onclick = async () => {
+  const skill = { icon: $("skillIcon").value || "⭐", name: $("skillName").value.trim(), prompt: $("skillPrompt").value.trim() };
+  if (!skill.name || !skill.prompt) return alert("Please write a name and instructions.");
+  const res = await api("skills", "POST", skill);
+  setSkill({ id: (await res.json()).id, icon: skill.icon, name: skill.name });
+  $("skillIcon").value = $("skillName").value = $("skillPrompt").value = "";
+  drawSkills();
+};
+
+// ---------- 📚 Documents library ----------
+
+$("openDocs").onclick = () => {
+  $("docsBox").showModal();
+  drawDocs();
+};
+
+async function drawDocs() {
+  const docs = await (await api("docs")).json();
+  $("docsList").innerHTML = docs.length ? "" : "No documents yet.";
+  for (const d of docs) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "📄 <span></span><small></small><button title='Delete'>🗑</button>";
+    row.querySelector("span").textContent = d.name;
+    row.querySelector("small").textContent = Math.round(d.chars / 1000) + "k chars";
+    row.querySelector("button").onclick = async () => {
+      if (!confirm("Delete " + d.name + "?")) return;
+      await api("docs/" + d.id, "DELETE");
+      drawDocs();
+    };
+    $("docsList").appendChild(row);
+  }
+}
+
+$("uploadDocs").onclick = () => $("docsInput").click();
+$("docsInput").onchange = async () => {
+  for (const file of $("docsInput").files) {
+    $("docsList").textContent = "Reading " + file.name + "…";
+    try {
+      const f = await readFile(file);         // same reader as 📎 attachments
+      if (!f.text) throw new Error("only text documents (PDF, Word, text) can be saved");
+      $("docsList").textContent = "Saving " + file.name + "…";
+      const res = await api("docs", "POST", { name: f.name, text: f.text });
+      if (!res.ok) throw new Error((await res.json()).error);
+    } catch (e) {
+      alert(file.name + ": " + e.message);
+    }
+  }
+  $("docsInput").value = "";
+  drawDocs();
+};
+
+// ---------- ⬇️ Export the open chat ----------
+
+$("openExport").onclick = () => {
+  if (!history.length) return alert("Open a chat first.");
+  $("exportBox").showModal();
+};
+
+$("exportMd").onclick = () => {
+  const title = $("chatTitle").textContent || "NEXUS chat";
+  let md = "# " + title + "\n\n*Exported from NEXUS on " + new Date().toLocaleString() + "*\n\n";
+  for (const m of history) {
+    const text = m.content.replace(FILE_BLOCK, (all, name) => "\n\n📄 *" + name + " attached*");
+    md += (m.role === "user" ? "## 🧑 You\n\n" : "## 🤖 NEXUS\n\n") + text + "\n\n---\n\n";
+  }
+  // Make a file in the browser and "click" a hidden download link
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([md], { type: "text/markdown" }));
+  link.download = title.replace(/[^\w\- ]+/g, "").slice(0, 50) + ".md";
+  link.click();
+  $("exportBox").close();
+};
+
+$("exportPdf").onclick = () => {
+  $("exportBox").close();
+  setTimeout(() => window.print(), 200);    // choose "Save as PDF" in the print window
+};
 
 // ---------- 🎤 Voice input ----------
 // Records your voice in the browser, sends it to /api/transcribe (free Whisper),
@@ -660,6 +801,7 @@ $("modelPick").onchange = () => localStorage.setItem("nexus-model", $("modelPick
 
 // ---------- Start ----------
 async function start() {
+  drawPending();          // shows the saved skill chip, if any
   try {
     await loadModels();
     await loadChats();

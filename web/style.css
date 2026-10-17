@@ -243,6 +243,34 @@ dialog textarea, dialog input {
 .doctor-row small { color: var(--muted); }
 
 .icon-btn { border: 0; background: none; font-size: 20px; padding: 2px 6px; }
+#openExport { margin-left: auto; font-size: 17px; }
+
+/* Documents list */
+.doc-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.doc-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-row small { color: var(--muted); }
+.doc-row button { border: 0; background: none; color: var(--muted); }
+.doc-row button:hover { color: var(--error); }
+
+/* Skills grid */
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.skill-card {
+  position: relative; text-align: left; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--sidebar); font-size: 14px;
+}
+.skill-card:hover, .skill-card.active { border-color: var(--primary); background: var(--card); }
+.skill-card .del { position: absolute; top: 4px; right: 6px; font-size: 12px; color: var(--muted); }
+.new-skill { margin-top: 6px; font-size: 14px; }
+.new-skill summary { cursor: pointer; color: var(--primary); }
+.skill-chip { border-color: var(--primary); }
+
+/* Printing (for "Download as PDF"): only the conversation */
+@media print {
+  #sidebar, .topbar, #composer, .meta, .copy-code, #overlay { display: none !important; }
+  body, main, #messages { display: block; height: auto; overflow: visible; background: #fff; color: #000; }
+  .msg.user .bubble { background: #f3efe8; color: #000; }
+  .content pre { white-space: pre-wrap; }
+}
 .only-mobile { display: none; }
 #overlay { display: none; }
 

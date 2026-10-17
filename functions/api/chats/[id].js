@@ -27,6 +27,7 @@ export async function onRequestDelete(context) {
   await db.batch([
     db.prepare("DELETE FROM messages WHERE chat_id = ?").bind(context.params.id),
     db.prepare("DELETE FROM chats WHERE id = ?").bind(context.params.id),
+    db.prepare("DELETE FROM chat_summaries WHERE chat_id = ?").bind(context.params.id),
   ]);
   return json({ ok: true });
 }

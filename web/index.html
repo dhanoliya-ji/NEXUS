@@ -40,6 +40,7 @@
     <nav id="chatList"></nav>
 
     <div class="sidebar-bottom">
+      <button class="side-btn" id="openDocs">📚 Documents</button>
       <button class="side-btn" id="openMemory">🧠 Memory</button>
       <button class="side-btn" id="openDoctor">🩺 Doctor</button>
       <button class="side-btn" id="toggleTheme">🌗 Theme</button>
@@ -55,8 +56,10 @@
         <option value="auto">✨ Auto (best free model)</option>
         <option value="council">🏛️ Council (3 AIs combined)</option>
         <option value="research">🔬 Deep Research (report with sources)</option>
+        <option value="careful">✅ Careful (answer, then double-check)</option>
       </select>
       <span id="chatTitle"></span>
+      <button class="icon-btn" id="openExport" title="Download this chat">⬇️</button>
     </header>
 
     <section id="messages">
@@ -76,13 +79,14 @@
     </section>
 
     <form id="composer">
-      <!-- Files waiting to be sent appear here as small chips -->
+      <!-- Active skill + files waiting to be sent appear here as small chips -->
       <div id="attachments"></div>
       <div class="box">
         <button id="attachBtn" type="button" class="tools-btn on" title="Attach images, PDF, Word, text or code files">📎</button>
         <input id="fileInput" type="file" multiple hidden
                accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.html,.css,.js,.ts,.py,.java,.c,.cpp,.sql,.xml,.yaml,.yml,.log">
         <button id="toolsBtn" type="button" class="tools-btn on" title="Tools: web search, weather, news… (click to turn off)">🌐</button>
+        <button id="skillBtn" type="button" class="tools-btn on" title="Skills: change how NEXUS answers">🧩</button>
         <textarea id="input" rows="1" placeholder="Message NEXUS…" autofocus></textarea>
         <button id="micBtn" type="button" class="tools-btn on" title="Speak (click again to stop)">🎤</button>
         <button id="send" type="submit" title="Send">↑</button>
@@ -109,6 +113,41 @@
       <button class="ghost" data-close>Close</button>
       <button class="primary" id="saveMemory">Save</button>
     </div>
+  </dialog>
+
+  <dialog id="docsBox">
+    <h2>📚 My documents</h2>
+    <p class="muted">Upload notes, PDFs or Word files once. In every chat, NEXUS searches them and uses the parts that match your question.</p>
+    <div id="docsList" class="muted">Loading…</div>
+    <input id="docsInput" type="file" multiple hidden accept=".pdf,.docx,.txt,.md,.csv,.json,.html,.js,.py">
+    <div class="row">
+      <button class="ghost" data-close>Close</button>
+      <button class="primary" id="uploadDocs">+ Upload documents</button>
+    </div>
+  </dialog>
+
+  <dialog id="skillsBox">
+    <h2>🧩 Skills</h2>
+    <p class="muted">A skill changes how NEXUS answers. Pick one (it stays on until you turn it off).</p>
+    <div id="skillsList" class="skills-grid"></div>
+    <details class="new-skill">
+      <summary>+ Make my own skill</summary>
+      <input id="skillIcon" placeholder="Emoji, e.g. 🚀" maxlength="4">
+      <input id="skillName" placeholder="Name, e.g. Startup mentor" maxlength="40">
+      <textarea id="skillPrompt" rows="4" placeholder="Instructions, e.g. Act as an experienced startup mentor. Be direct, give practical next steps…"></textarea>
+      <button class="primary" id="saveSkill">Save skill</button>
+    </details>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
+  </dialog>
+
+  <dialog id="exportBox">
+    <h2>⬇️ Download this chat</h2>
+    <p class="muted">Save the open chat as a file.</p>
+    <div class="row" style="justify-content:flex-start">
+      <button class="primary" id="exportMd">Markdown (.md)</button>
+      <button class="primary" id="exportPdf">PDF (print)</button>
+    </div>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
   <dialog id="doctorBox">
