@@ -1,0 +1,55 @@
+# ============================================================
+#  Weekly key check — a free GitHub bot that watches NEXUS
+# ============================================================
+#  Every Monday at 9:00 AM (India time) GitHub opens your NEXUS Doctor.
+#  If a key stopped working or a model was removed, it opens a GitHub
+#  issue (you get an email). "Busy" (429) is ignored, it fixes itself.
+#  You can also run it by hand: GitHub → Actions → Weekly key check → Run workflow.
+
+name: Weekly key check
+
+on:
+  schedule:
+    - cron: "30 3 * * 1"      # 03:30 UTC = 09:00 IST, every Monday
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the NEXUS Doctor
+        env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          curl -s --max-time 120 -A "NEXUS-weekly-check" -H "x-nexus-key: $NEXUS_PASSWORD" "$NEXUS_URL/api/doctor" > doctor.json \
+            || echo '[{"name":"NEXUS website","status":"error","error":"the site did not answer"}]' > doctor.json
+          python3 - <<'EOF'
+          import json
+          try:
+              rows = json.load(open("doctor.json"))
+          except Exception:
+              rows = [{"name": "NEXUS website", "status": "error", "error": "wrong password or site down"}]
+          broken = [r for r in rows if r["status"] == "error" and not r.get("error", "").endswith("429")]
+          lines = ["| Provider | Status | Details |", "|---|---|---|"]
+          for r in rows:
+              icon = {"ok": "✅", "no key": "➖"}.get(r["status"], "❌")
+              lines.append(f"| {r['name']} | {icon} {r['status']} | {r.get('model', '')} {r.get('error', '')} |")
+          open("report.md", "w").write("\n".join(lines) + "\n\nFix: update the key in `.dev.vars`, upload it with "
+              "`npx wrangler pages secret put NAME --project-name nexus`, or update the model list in `lib/providers.js`.\n")
+          print("\n".join(lines))
+          open("broken.txt", "w").write(str(len(broken)))
+          EOF
+
+      - name: Open an issue if something is broken
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(cat broken.txt)" != "0" ]; then
+            gh issue create --repo "${{ github.repository }}" \
+              --title "🩺 NEXUS weekly check: $(cat broken.txt) provider(s) not working" \
+              --body-file report.md
+          fi

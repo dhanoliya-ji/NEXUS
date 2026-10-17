@@ -102,23 +102,44 @@ async function deleteChat(id) {
 
 const welcome = $("welcome");
 
+// Your message bubble: the text, plus small chips for attached files instead of their whole content
+function drawUserBubble(div, text, images) {
+  const files = [];
+  const visible = text.replace(FILE_BLOCK, (all, name) => { files.push(name); return ""; }).trim();
+
+  div.innerHTML = '<div class="bubble"><div class="text"></div><div class="files"></div></div>';
+  div.querySelector(".text").textContent = visible;
+  for (const name of files) {
+    const chip = document.createElement("span");
+    chip.className = "file-chip";
+    chip.textContent = "📄 " + name;
+    div.querySelector(".files").appendChild(chip);
+  }
+  for (const url of images || []) {
+    const img = document.createElement("img");
+    img.className = "sent-image";
+    img.src = url;
+    div.querySelector(".bubble").appendChild(img);
+  }
+}
+
 // Add one message to the screen. Returns its element.
-function addMessage(role, text, model) {
+function addMessage(role, text, model, images) {
   welcome.remove();
   const div = document.createElement("div");
   div.className = "msg " + role;
 
   if (role === "user") {
-    div.innerHTML = '<div class="bubble"></div>';
-    div.querySelector(".bubble").textContent = text;
+    drawUserBubble(div, text, images);
   } else {
     div.innerHTML =
       '<img class="avatar" src="icon.svg" alt="">' +
       '<div class="body"><div class="content"></div>' +
-      '<div class="meta"><span class="model"></span><button class="copy">Copy</button></div></div>';
+      '<div class="meta"><span class="model"></span><button class="copy">Copy</button><button class="speak">🔊 Read</button></div></div>';
     div.querySelector(".content").innerHTML = toHtml(text);
     div.querySelector(".model").textContent = model || "";
     div.querySelector(".copy").onclick = () => copyText(div.dataset.raw || text, div.querySelector(".copy"));
+    div.querySelector(".speak").onclick = () => speak(div.dataset.raw || text, div.querySelector(".speak"));
     decorateCode(div);
   }
   $("messages").appendChild(div);
@@ -151,27 +172,38 @@ function scrollDown() {
 
 async function send(text) {
   text = text.trim();
-  if (!text || busy) return;
+  if ((!text && pending.length === 0) || busy) return;
   busy = true;
   $("send").disabled = true;
   $("input").value = "";
   autoGrow();
 
+  // Attached files: text files go INSIDE the message, images are sent separately
+  const images = pending.filter((f) => f.image).map((f) => f.image);
+  let content = text || "Please look at the attached file(s).";
+  for (const f of pending.filter((f) => f.text !== undefined)) {
+    content += "\n\n<<FILE: " + f.name + ">>\n" + f.text + "\n<<END FILE>>";
+  }
+  pending = [];
+  drawPending();
+
   // New chat? Create it first (title = start of your first message)
   if (!currentChatId) {
-    const res = await api("chats", "POST", { title: text.slice(0, 50) });
+    const title = (text || "Files").slice(0, 50);
+    const res = await api("chats", "POST", { title: title });
     currentChatId = (await res.json()).id;
-    $("chatTitle").textContent = text.slice(0, 50);
+    $("chatTitle").textContent = title;
   }
 
-  addMessage("user", text);
-  history.push({ role: "user", content: text });
+  addMessage("user", content, "", images);
+  history.push({ role: "user", content: content });
   scrollDown();
 
   try {
     if (text.startsWith("/image ")) await makeImage(text.slice(7));
-    else if (text.startsWith("/research ")) await askAI(text, "research");
-    else await askAI(text, $("modelPick").value);
+    else if (text.startsWith("/research ")) await askAI(content, "research");
+    else if (images.length) await askAI(content, "auto", images);     // pictures → a model that can see
+    else await askAI(content, $("modelPick").value);
   } catch (e) {
     if (e.message !== "password needed") addMessage("assistant", "⚠️ " + e.message);
   }
@@ -189,12 +221,12 @@ const WAITING = {
 
 // Ask the AI and show the answer word by word as it arrives
 //   choice = "auto" | "council" | "research" | "groq/model…" | "pc/qwen3:4b"
-async function askAI(text, choice) {
-  const div = addMessage("assistant", "", WAITING[choice] || "Thinking…");
+async function askAI(text, choice, images) {
+  const div = addMessage("assistant", "", images ? "👀 Looking at your image…" : WAITING[choice] || "Thinking…");
   const content = div.querySelector(".content");
   content.classList.add("typing");
 
-  const body = { chatId: currentChatId, messages: history, model: choice, tools: toolsOn };
+  const body = { chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images };
   let res;
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
   else res = await api(choice === "council" || choice === "research" ? choice : "chat", "POST", body);
@@ -338,6 +370,179 @@ async function makeImage(prompt) {
   await api("messages", "POST", { chatId: currentChatId, role: "user", content: "/image " + prompt });
   await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: "Pollinations.ai · image" });
   scrollDown();
+}
+
+// ---------- 📎 Attachments ----------
+// Files are read IN YOUR BROWSER (nothing is uploaded except the text or picture):
+//   PDF  → text with pdf.js        Word (.docx) → text with mammoth.js
+//   text / code files → read as-is  images → shrunk to max 1280 px, sent to a model that can see
+
+let pending = [];   // files waiting to be sent: {name, text} or {name, image}
+const FILE_BLOCK = /\n*<<FILE: (.+?)>>\n[\s\S]*?\n<<END FILE>>/g;
+const MAX_FILE_CHARS = 400000;   // about 100k tokens per file
+
+$("attachBtn").onclick = () => $("fileInput").click();
+$("fileInput").onchange = async () => {
+  for (const file of $("fileInput").files) {
+    try {
+      pending.push(await readFile(file));
+    } catch (e) {
+      alert("Could not read " + file.name + ": " + e.message);
+    }
+    drawPending();
+  }
+  $("fileInput").value = "";
+};
+
+// You can also paste an image (Ctrl+V) straight into the message box
+$("input").addEventListener("paste", async (e) => {
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith("image/")) {
+      pending.push(await readFile(item.getAsFile()));
+      drawPending();
+    }
+  }
+});
+
+async function readFile(file) {
+  const name = file.name || "pasted-image.png";
+  if (file.type.startsWith("image/")) return { name: name, image: await shrinkImage(file) };
+
+  let text;
+  if (name.toLowerCase().endsWith(".pdf")) text = await readPdf(file);
+  else if (name.toLowerCase().endsWith(".docx")) text = await readDocx(file);
+  else text = await file.text();
+
+  if (text.length > MAX_FILE_CHARS) text = text.slice(0, MAX_FILE_CHARS) + "\n…(file cut here, too long)";
+  return { name: name, text: text };
+}
+
+// Load a helper library only when it's first needed (keeps the page fast)
+function loadScript(url) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector('script[src="' + url + '"]')) return resolve();
+    const s = document.createElement("script");
+    s.src = url;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("could not load " + url));
+    document.head.appendChild(s);
+  });
+}
+
+async function readPdf(file) {
+  const base = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+  await loadScript(base + "pdf.min.js");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = base + "pdf.worker.min.js";
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += "\n[Page " + i + "]\n" + content.items.map((item) => item.str).join(" ");
+  }
+  if (!text.replace(/\[Page \d+\]/g, "").trim()) throw new Error("this PDF has no text (it may be scanned images)");
+  return text;
+}
+
+async function readDocx(file) {
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");
+  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+  return result.value;
+}
+
+// Make big photos smaller so they upload fast (max 1280 px, JPEG)
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(img.src);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => reject(new Error("not a valid image"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// Show the waiting files as chips with an ✕ to remove
+function drawPending() {
+  $("attachments").innerHTML = "";
+  pending.forEach((f, i) => {
+    const chip = document.createElement("span");
+    chip.className = "file-chip";
+    chip.innerHTML = (f.image ? '<img alt="">' : "📄") + "<span></span><button title='Remove'>✕</button>";
+    if (f.image) chip.querySelector("img").src = f.image;
+    chip.querySelector("span").textContent = f.name + (f.text ? " (" + Math.round(f.text.length / 1000) + "k chars)" : "");
+    chip.querySelector("button").onclick = () => { pending.splice(i, 1); drawPending(); };
+    $("attachments").appendChild(chip);
+  });
+}
+
+// ---------- 🎤 Voice input ----------
+// Records your voice in the browser, sends it to /api/transcribe (free Whisper),
+// and puts the text in the message box so you can check it before sending.
+
+let recorder = null;
+$("micBtn").onclick = async () => {
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();                       // second click = stop
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    alert("Microphone not allowed. Click the 🔒 icon in the address bar to allow it.");
+    return;
+  }
+  const chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());   // turn the mic off
+    $("micBtn").classList.remove("recording");
+    $("micBtn").textContent = "⏳";
+    try {
+      const form = new FormData();
+      form.append("audio", new Blob(chunks, { type: recorder.mimeType }), "voice.webm");
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "x-nexus-key": localStorage.getItem("nexus-key") || "" },
+        body: form,
+      });
+      const data = await res.json();
+      if (data.text) {
+        $("input").value = ($("input").value + " " + data.text).trim();
+        autoGrow();
+        $("input").focus();
+      } else alert(data.error || "Could not understand the audio");
+    } finally {
+      $("micBtn").textContent = "🎤";
+    }
+  };
+  recorder.start();
+  $("micBtn").classList.add("recording");
+};
+
+// ---------- 🔊 Read answers aloud ----------
+// Uses the voice built into your browser / phone (free, works offline)
+function speak(text, button) {
+  if (speechSynthesis.speaking) {          // clicking again = stop
+    speechSynthesis.cancel();
+    button.textContent = "🔊 Read";
+    return;
+  }
+  // Remove markdown symbols and code blocks so it sounds natural
+  const plain = text.replace(/```[\s\S]*?```/g, " (code block) ").replace(/[#*_`>|\[\]]/g, "").replace(/\(https?:[^)]+\)/g, "");
+  const voice = new SpeechSynthesisUtterance(plain);
+  voice.lang = /[ऀ-ॿ]/.test(plain) ? "hi-IN" : "en-IN";   // Hindi letters → Hindi voice
+  voice.onend = () => (button.textContent = "🔊 Read");
+  button.textContent = "⏹ Stop";
+  speechSynthesis.speak(voice);
 }
 
 // ---------- 5. Pop-ups and buttons ----------

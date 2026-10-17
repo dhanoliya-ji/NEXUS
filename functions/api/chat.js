@@ -7,20 +7,23 @@
 //   3. stream the answer back word by word
 
 import { json } from "../../lib/db.js";
-import { planRoute } from "../../lib/router.js";
+import { planRoute, planVision } from "../../lib/router.js";
 import { callModel } from "../../lib/providers.js";
 import { prepare, infoHeaders } from "../../lib/prepare.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, model, tools } = await context.request.json();
+  const { chatId, messages, model, tools, images } = await context.request.json();
   // messages = [{role:"user", content:"..."}, {role:"assistant", ...}, ...]
+  // images   = ["data:image/jpeg;base64,...", ...]  (only for the newest message)
 
-  const plan = planRoute(env, messages, model);
+  // Pictures need a model that can see; otherwise the normal router decides
+  const hasImages = images && images.length > 0;
+  const plan = hasImages ? planVision(env) : planRoute(env, messages, model);
   if (plan.length === 0) return json({ error: "No API keys found. Add keys to .dev.vars (see SETUP.md)." }, 400);
 
   // 1. Save message + build instructions (tools are on unless the browser says false)
-  const prep = await prepare(env, chatId, messages, tools !== false);
+  const prep = await prepare(env, chatId, messages, tools !== false, images);
 
   // 2. Try models one by one until one answers
   const errors = [];

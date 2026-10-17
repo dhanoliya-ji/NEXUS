@@ -76,9 +76,15 @@
     </section>
 
     <form id="composer">
+      <!-- Files waiting to be sent appear here as small chips -->
+      <div id="attachments"></div>
       <div class="box">
+        <button id="attachBtn" type="button" class="tools-btn on" title="Attach images, PDF, Word, text or code files">📎</button>
+        <input id="fileInput" type="file" multiple hidden
+               accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.html,.css,.js,.ts,.py,.java,.c,.cpp,.sql,.xml,.yaml,.yml,.log">
         <button id="toolsBtn" type="button" class="tools-btn on" title="Tools: web search, weather, news… (click to turn off)">🌐</button>
         <textarea id="input" rows="1" placeholder="Message NEXUS…" autofocus></textarea>
+        <button id="micBtn" type="button" class="tools-btn on" title="Speak (click again to stop)">🎤</button>
         <button id="send" type="submit" title="Send">↑</button>
       </div>
       <div class="hint">NEXUS uses free AI models and can make mistakes. Shift+Enter = new line.</div>
