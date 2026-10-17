@@ -9,8 +9,8 @@ import { json } from "../../lib/db.js";
 import { prepare } from "../../lib/prepare.js";
 
 export async function onRequestPost(context) {
-  const { chatId, messages, tools, skill } = await context.request.json();
-  const prep = await prepare(context.env, chatId, messages, { tools: tools, skill: skill });
+  const { chatId, messages, tools, skill, skillPrompt } = await context.request.json();
+  const prep = await prepare(context.env, chatId, messages, { tools: tools, skill: skill, skillPrompt: skillPrompt });
   return json({
     system: prep.system,
     memories: prep.memories.length,

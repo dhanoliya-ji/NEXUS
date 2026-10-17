@@ -300,6 +300,10 @@ dialog textarea, dialog input {
 }
 .skill-card:hover, .skill-card.active { border-color: var(--primary); background: var(--card); }
 .skill-card .del { position: absolute; top: 4px; right: 6px; font-size: 12px; color: var(--muted); }
+.skill-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.skill-tabs button { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: none; font-size: 13px; }
+.skill-tabs button.on { border-color: var(--primary); background: var(--card); }
+.skills-grid { max-height: 45vh; overflow-y: auto; }
 .new-skill { margin-top: 6px; font-size: 14px; }
 .new-skill summary { cursor: pointer; color: var(--primary); }
 .skill-chip { border-color: var(--primary); }

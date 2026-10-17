@@ -162,7 +162,13 @@
   <dialog id="skillsBox">
     <h2>🧩 Skills</h2>
     <p class="muted">A skill changes how NEXUS answers. Pick one (it stays on until you turn it off).</p>
+    <input id="skillSearch" placeholder="🔎 Search 550+ skills… (summarize, quiz, interviewer, writing…)">
+    <div class="skill-tabs">
+      <button data-group="all" class="on">All</button><button data-group="builtin">⭐ Built-in</button>
+      <button data-group="mine">🙋 Mine</button><button data-group="fabric">🧵 Fabric</button><button data-group="persona">🎭 Personas</button>
+    </div>
     <div id="skillsList" class="skills-grid"></div>
+    <p class="muted" id="skillsCredit" style="font-size:12px"></p>
     <details class="new-skill">
       <summary>+ Make my own skill</summary>
       <input id="skillIcon" placeholder="Emoji, e.g. 🚀" maxlength="4">

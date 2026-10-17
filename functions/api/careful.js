@@ -15,13 +15,13 @@ import { liveStream, infoOf } from "../../lib/live.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, tools, skill } = await context.request.json();
+  const { chatId, messages, tools, skill, skillPrompt } = await context.request.json();
 
   const plan = planRoute(env, messages, "auto");
   if (plan.length === 0) return json({ error: "No API keys found." }, 400);
 
   return liveStream(context, async (live) => {
-    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, onStatus: live.status });
+    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, skillPrompt: skillPrompt, onStatus: live.status });
 
     // 1. DRAFT
     live.status("📝 Writing a first draft…");

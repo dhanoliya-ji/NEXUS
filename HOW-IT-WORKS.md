@@ -272,3 +272,11 @@ To add meaning search for old data: `POST /api/reindex?kind=chats` (and `kind=do
 | **Council** picks the most consistent answer and improves it, instead of blending everything | `functions/api/council.js` | Universal Self-Consistency (2023) |
 
 The 🧠 Memory window shows your facts, their history, your lessons and your AI rankings.
+
+## 15. Skills library (Phase 3)
+
+`scripts/import-skills.js` downloads **fabric's** expert prompts (MIT) and the first 300 **prompts.chat** personas (CC0) into `web/skills-library.json`, about 840 KB. The 🧩 window loads that file the first time it opens, then searches it by name and content.
+
+Library skills aren't stored on the server, so the browser sends the chosen skill's text as `skillPrompt`. `prepare.js` uses it when the skill id isn't a built-in or one of your own.
+
+A GitHub Action (`update-skills.yml`) re-runs the script on the 1st of every month and opens a pull request when something changed.

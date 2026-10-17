@@ -13,7 +13,7 @@ import { liveStream } from "../../lib/live.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, tools, skill } = await context.request.json();
+  const { chatId, messages, tools, skill, skillPrompt } = await context.request.json();
 
   // All providers (their main model), in random order so every AI gets a chance
   const candidates = [];
@@ -23,7 +23,7 @@ export async function onRequestPost(context) {
   if (candidates.length < 2) return json({ error: "Battle needs at least 2 working providers." }, 400);
 
   return liveStream(context, async (live) => {
-    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, onStatus: live.status });
+    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, skillPrompt: skillPrompt, onStatus: live.status });
     live.status("⚔️ Two AIs are answering…");
 
     // Ask two at a time; if one fails (limit reached, down), the next candidate takes its place.

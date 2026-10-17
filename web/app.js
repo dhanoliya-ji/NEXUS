@@ -314,7 +314,7 @@ async function askAI(text, choice, images, extra) {
 
   const body = {
     chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images,
-    skill: activeSkill ? activeSkill.id : null, ...(extra || {}),
+    skill: activeSkill ? activeSkill.id : null, skillPrompt: activeSkill ? activeSkill.prompt : null, ...(extra || {}),
   };
   let res;
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
@@ -689,20 +689,51 @@ let activeSkill = null;
 try { activeSkill = JSON.parse(localStorage.getItem("nexus-skill")); } catch (e) { /* none */ }
 
 function setSkill(skill) {
-  activeSkill = skill ? { id: skill.id, icon: skill.icon, name: skill.name } : null;
+  // Library skills (fabric / personas) aren't stored on the server, so we keep their text here
+  const fromLibrary = skill && (skill.group === "fabric" || skill.group === "persona");
+  activeSkill = skill ? { id: skill.id, icon: skill.icon, name: skill.name, prompt: fromLibrary ? skill.prompt : undefined } : null;
   localStorage.setItem("nexus-skill", JSON.stringify(activeSkill));
   drawPending();
 }
 
+// The big library (fabric patterns + prompts.chat personas) loads the first time you open Skills
+let skillLibrary = null;
+let skillGroup = "all";
+
 $("skillBtn").onclick = async () => {
   $("skillsBox").showModal();
+  $("skillSearch").value = "";
   await drawSkills();
+  $("skillSearch").focus();
 };
+$("skillSearch").oninput = () => drawSkills();
+document.querySelectorAll(".skill-tabs button").forEach((tab) => {
+  tab.onclick = () => {
+    skillGroup = tab.dataset.group;
+    document.querySelectorAll(".skill-tabs button").forEach((t) => t.classList.toggle("on", t === tab));
+    drawSkills();
+  };
+});
 
 async function drawSkills() {
-  const skills = await (await api("skills")).json();
-  $("skillsList").innerHTML = "";
-  for (const s of skills) {
+  const mine = await (await api("skills")).json();                 // built-in + your own
+  mine.forEach((s) => (s.group = s.builtin ? "builtin" : "mine"));
+  if (!skillLibrary) {
+    try {
+      skillLibrary = await (await fetch("skills-library.json")).json();
+      $("skillsCredit").innerHTML = "Library: " + skillLibrary.sources.map((s) => '<a href="' + s.url + '" target="_blank">' + s.name + "</a> (" + s.license + ")").join(" · ");
+    } catch (e) { skillLibrary = { skills: [] }; }
+  }
+
+  const words = $("skillSearch").value.toLowerCase().split(/\s+/).filter(Boolean);
+  const skills = mine.concat(skillLibrary.skills).filter((s) =>
+    (skillGroup === "all" || s.group === skillGroup) &&
+    words.every((w) => (s.name + " " + s.prompt.slice(0, 400)).toLowerCase().includes(w))
+  );
+
+  $("skillsList").innerHTML = skills.length ? "" : "<p class='muted'>No skill found.</p>";
+  for (const s of skills.slice(0, 80)) {                         // show at most 80 at once
+    if (s.group === "fabric" || s.group === "persona") s.builtin = true;   // library skills can't be deleted
     const card = document.createElement("button");
     card.className = "skill-card" + (activeSkill && activeSkill.id === s.id ? " active" : "");
     card.title = s.prompt;

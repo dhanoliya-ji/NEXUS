@@ -1,0 +1,32 @@
+# ============================================================
+#  Update skills — once a month, fetch new prompts from fabric + prompts.chat
+# ============================================================
+#  Rebuilds web/skills-library.json and opens a pull request if anything changed.
+#  You review and merge it (nothing changes on your site until you do).
+
+name: Update skills library
+
+on:
+  schedule:
+    - cron: "0 4 1 * *"        # 1st of every month, 09:30 IST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/import-skills.js
+      - uses: peter-evans/create-pull-request@v8
+        with:
+          branch: bot/update-skills
+          title: "🧩 Monthly skills library update"
+          commit-message: "Update skills library from fabric and prompts.chat"
+          body: "Automatic monthly refresh of `web/skills-library.json` (fabric patterns + prompts.chat personas). Merge to publish."

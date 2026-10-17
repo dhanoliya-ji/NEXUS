@@ -18,13 +18,13 @@ const JUDGES = ["gemini", "groq", "cloudflare", "nvidia", "zai", "mistral"];
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, tools, skill } = await context.request.json();
+  const { chatId, messages, tools, skill, skillPrompt } = await context.request.json();
 
   const members = MEMBERS.map(getProvider).filter((p) => isReady(p, env)).slice(0, 3);
   if (members.length === 0) return json({ error: "No API keys found." }, 400);
 
   return liveStream(context, async (live) => {
-    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, onStatus: live.status });
+    const prep = await prepare(env, chatId, messages, { tools: tools, skill: skill, skillPrompt: skillPrompt, onStatus: live.status });
 
     // 1. Ask all members at once
     live.status("🏛️ Asking " + members.map((p) => p.name).join(", ") + "…");

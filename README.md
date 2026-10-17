@@ -59,3 +59,14 @@ lib/         shared brain code: providers, router, memory, database
 local/       laptop-only scripts (D drive backup)
 scripts/     code checker
 ```
+
+## Credits
+
+NEXUS reuses open-source work. Thank you to:
+
+| Project | Used for | License |
+|---|---|---|
+| [danielmiessler/fabric](https://github.com/danielmiessler/fabric) | 250+ expert prompts in the 🧩 skills library | MIT |
+| [f/prompts.chat](https://github.com/f/prompts.chat) | 300 "act as…" personas in the skills library | CC0 |
+| Hugging Face models via Cloudflare Workers AI | Qwen3-Embedding (meaning search), BAAI bge-reranker | Apache-2.0 / MIT |
+| Ideas from research papers | Mem0, Zep, LongMemEval, CRAG, Adaptive-RAG, RAG-Fusion, Mixture-of-Thought cascades, SelfCheckGPT, Chatbot Arena, ACE, Universal Self-Consistency, STORM | — |
