@@ -431,3 +431,15 @@ dialog a { color: var(--primary); }
 @media (max-width: 800px) { .eqcode { grid-template-columns: 1fr; } .shape-row { grid-template-columns: 1fr; } }
 .verify-box.broken { border-color: var(--muted); }
 .verify-box.broken .verify-status { color: var(--muted); font-weight: 600; }
+
+/* 🧮 Autograd lab */
+dialog.lab { width: min(900px, calc(100% - 32px)); }
+dialog.lab textarea { font: 13px/1.5 var(--mono, ui-monospace, monospace); }
+dialog.lab h3 { font-size: 15px; margin: 18px 0 4px; }
+#labGraph .diagram-box { overflow-x: auto; }
+.lab-steps { font-size: 13px; padding-left: 22px; }
+.lab-steps li { margin: 6px 0; }
+.lab-steps code { font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+.lab-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.lab-table th, .lab-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+.lab-table td:last-child { font-weight: 600; }

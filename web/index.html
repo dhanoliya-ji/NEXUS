@@ -48,6 +48,7 @@
       <button class="side-btn" id="openRoadmap">🗺️ Roadmap</button>
       <button class="side-btn" id="openCards">🃏 Flashcards</button>
       <button class="side-btn" id="openInterview">💼 Interview</button>
+      <button class="side-btn" id="openLab">🧮 Autograd lab</button>
       <button class="side-btn" id="openDocs">📚 Documents</button>
       <button class="side-btn" id="openImages">🎨 Images</button>
       <button class="side-btn" id="openReminders">⏰ Reminders</button>
@@ -355,6 +356,33 @@
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
+  <!-- 🧮 Autograd lab (autograd.js) -->
+  <dialog id="labBox" class="wide lab">
+    <h2>🧮 Autograd lab</h2>
+    <p class="muted" style="font-size:12px">Build an expression from <code>Value</code> numbers and watch backpropagation compute every gradient.
+      Operations: <code>+ - * / **</code>, <code>.tanh() .sigmoid() .relu() .exp() .log()</code>. The output is <code>L</code> (or the last result).
+      Engine in the style of <a href="https://github.com/karpathy/micrograd" target="_blank">micrograd</a> by Andrej Karpathy (MIT).</p>
+    <div class="form-row"><label>Example <select id="labExample"></select></label></div>
+    <textarea id="labCode" rows="8" spellcheck="false"></textarea>
+    <div class="row" style="justify-content:flex-start">
+      <button id="labRun">▶ Forward + backward</button>
+      <button class="ghost" id="labAsk">🎓 Ask NEXUS to explain</button>
+      <span id="labStatus" class="muted"></span>
+    </div>
+    <div id="labResult" hidden>
+      <h3>1. Computation graph</h3>
+      <p class="muted" style="font-size:12px">Arrows go forward (inputs → output). Blue = inputs, orange = output. <b>grad</b> = how much the output changes per unit change of that number.</p>
+      <div id="labGraph"></div>
+      <h3>2. Backward pass, step by step</h3>
+      <ol id="labSteps" class="lab-steps"></ol>
+      <h3>3. Check: backprop vs. numerical gradient</h3>
+      <p class="muted" style="font-size:12px">Numerical gradient = (L(x + h) − L(x − h)) / 2h with h = 10⁻⁶: nudge one input and measure how the output moves.</p>
+      <table class="lab-table"><thead><tr><th>Input</th><th>Value</th><th>Grad (backprop)</th><th>Grad (numerical)</th><th>Match</th></tr></thead><tbody id="labChecks"></tbody></table>
+    </div>
+    <details><summary>🔍 Read the engine's code (~150 lines)</summary><pre><code class="language-python" id="labEngine"></code></pre></details>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
+  </dialog>
+
   <script src="render.js"></script>
   <script src="runners.js"></script>
   <script src="python.js"></script>
@@ -363,5 +391,6 @@
   <script src="exporter.js"></script>
   <script src="notes.js"></script>
   <script src="learn.js"></script>
+  <script src="autograd.js"></script>
 </body>
 </html>

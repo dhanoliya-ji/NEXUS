@@ -402,4 +402,11 @@ When a check fails, `functions/api/fixcode.js` reviews it once (idea from the *S
 
 **📏 Shapes button** on Python blocks runs the code with an AST tracer and shows each variable's shape next to the line that made it.
 
+**🧮 Autograd lab** (sidebar, `web/autograd.js`). Write an expression with `Value` numbers, e.g. `L = (a*b + c).tanh()`, and see:
+1. **The computation graph**: every number with its value and gradient (Mermaid).
+2. **Every backward step with real numbers**: `a.grad += -3 × -2 → 6   (∂(a·b)/∂a = b)`. Visiting the nodes in reverse topological order is exactly what PyTorch's `loss.backward()` does.
+3. **A check**: backprop gradients vs. numerical gradients `(L(x+h) − L(x−h)) / 2h`. Each input is nudged by re-running your code with that input moved by ±h.
+
+The engine is about 150 readable lines in the style of micrograd (Andrej Karpathy, MIT); open "Read the engine's code" in the lab. Six examples teach one idea each: the chain rule, a tanh neuron, the logistic-regression loss, squared error, why gradients **add up** when a number is used twice (that's why it's `+=`), and how ReLU kills gradients.
+
 Tested end to end on the live site with puppeteer: derive (2 checks verified), equation ↔ code grid, stepper (◀ ▶), shapes, and the source mode on PyTorch Dropout and scikit-learn StandardScaler (the real file and line links appeared in the answer).
