@@ -122,6 +122,58 @@ function redrawCharts() {
   document.querySelectorAll(".chart-box").forEach((box) => box.spec && drawChart(box));
 }
 
+// ---------- 📐 Diagrams (Mermaid) ----------
+//
+// NEXUS writes a diagram as text, for example:
+//   ```mermaid
+//   flowchart LR
+//     A[Input tokens] --> B[Embedding] --> C[Transformer blocks] --> D[Output]
+//   ```
+// mermaid.js (MIT, github.com/mermaid-js/mermaid) turns it into a picture.
+
+let mermaidLib = null;
+let diagramCount = 0;
+
+async function renderMermaid(codeBlock) {
+  const source = codeBlock.textContent;
+  try {
+    if (!mermaidLib) {
+      mermaidLib = (await import("https://cdn.jsdelivr.net/npm/mermaid@12.1.0/dist/mermaid.esm.min.mjs")).default;
+    }
+    mermaidLib.initialize({ startOnLoad: false, theme: isDark() ? "dark" : "neutral", securityLevel: "strict", fontFamily: "Inter, sans-serif" });
+    const { svg } = await mermaidLib.render("nexus-diagram-" + ++diagramCount, source);
+
+    const box = document.createElement("div");
+    box.className = "chart-box diagram-box";
+    box.innerHTML = svg + '<div class="chart-actions"><button class="code-btn">{ } Code</button><button class="svg-btn">⬇️ SVG</button></div><pre class="diagram-src" hidden></pre>';
+    box.querySelector(".diagram-src").textContent = source;
+    box.querySelector(".code-btn").onclick = () => (box.querySelector(".diagram-src").hidden = !box.querySelector(".diagram-src").hidden);
+    box.querySelector(".svg-btn").onclick = () => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([box.querySelector("svg").outerHTML], { type: "image/svg+xml" }));
+      link.download = "diagram.svg";
+      link.click();
+    };
+    box.mermaidSource = source;
+    codeBlock.parentElement.replaceWith(box);
+  } catch (e) {
+    // a broken diagram stays visible as code, with a small note
+    codeBlock.parentElement.insertAdjacentHTML("afterend", '<p class="muted" style="font-size:12px">⚠️ This diagram has a syntax error, showing the code instead.</p>');
+  }
+}
+
+// Redraw diagrams when you switch light/dark (they have different colors)
+async function redrawDiagrams() {
+  for (const box of document.querySelectorAll(".diagram-box")) {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = box.mermaidSource;
+    pre.appendChild(code);
+    box.replaceWith(pre);
+    await renderMermaid(code);
+  }
+}
+
 // ---------- ▶ Python in your browser (Pyodide) ----------
 //
 // The first run downloads Python (~10 MB, about 10 seconds), then it's fast.

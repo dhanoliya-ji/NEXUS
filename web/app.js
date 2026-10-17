@@ -202,6 +202,7 @@ function addMessage(role, text, model, images) {
 function decorateCode(div) {
   div.querySelectorAll("pre code").forEach((block) => {
     if (block.classList.contains("language-chart")) return renderChart(block);
+    if (block.classList.contains("language-mermaid")) return renderMermaid(block);
     hljs.highlightElement(block);
     if (block.classList.contains("language-python")) addRunButton(block);
     const btn = document.createElement("button");
@@ -288,6 +289,13 @@ async function askAI(text, choice, images, extra) {
     chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images,
     skill: activeSkill ? activeSkill.id : null, skillPrompt: activeSkill ? activeSkill.prompt : null, ...(extra || {}),
   };
+  // 🎓 Explain mode = a teaching "skill" at the chosen level, answered by the normal router
+  if (choice.startsWith("explain-")) {
+    body.skill = null;
+    body.skillPrompt = explainPrompt(choice.slice(8));
+    body.model = "auto";
+    choice = "auto";
+  }
   let res;
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
   else res = await api(SPECIAL_MODES.includes(choice) ? choice : "chat", "POST", body);
@@ -372,6 +380,25 @@ async function askAI(text, choice, images, extra) {
   // Save the answer (and let NEXUS update its memory in the background)
   history.push({ role: "assistant", content: answer });
   await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: modelName, userText: text });
+}
+
+// 🎓 The teaching structure used by Explain mode
+function explainPrompt(level) {
+  const depth = {
+    beginner: "a BEGINNER (knows basic Python and school math). Use everyday analogies, keep math light and explain every symbol",
+    intermediate: "an INTERMEDIATE learner (knows Python, linear algebra and basic ML). Include the key equations and why they work",
+    advanced: "an ADVANCED learner. Go deep: derivations, complexity, design trade-offs, recent research and implementation details",
+  }[level] || "an intermediate learner";
+  return "You are an expert AI/ML and software teacher. Explain the user's topic for " + depth + ".\n" +
+    "Use exactly these sections (skip one only if it truly doesn't apply):\n" +
+    "## 💡 Intuition — the core idea in plain words with a real-life analogy.\n" +
+    "## 📐 The math — key equations in LaTeX ($...$ / $$...$$), every symbol explained, step by step.\n" +
+    "## 🧑‍💻 Code — a minimal, runnable, commented example (NumPy for fundamentals, PyTorch for deep learning, " +
+    "scikit-learn for classic ML). If it uses only numpy/pandas/scikit-learn/matplotlib, say it can run here with ▶ Run.\n" +
+    "## 📊 Diagram — a ```mermaid diagram when structure or flow matters (architectures, pipelines, algorithms).\n" +
+    "## ⚠️ Common mistakes — 3-5 misconceptions or bugs people hit.\n" +
+    "## 🔗 Where it's used & what to learn next.\n" +
+    "## 🧪 Quick quiz — 3 questions, with the answers hidden inside <details><summary>Show answers</summary> ... </details>.";
 }
 
 // ---------- 👍 👎 🔄 ✏️ ⚔️  Feedback that teaches NEXUS ----------
@@ -1274,7 +1301,8 @@ $("toggleTheme").onclick = () => {
     (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "light" : "dark";
   localStorage.setItem("nexus-theme", document.documentElement.dataset.theme);
-  redrawCharts();          // charts use different colors in dark mode
+  redrawCharts();          // charts and diagrams use different colors in dark mode
+  redrawDiagrams();
 };
 if (localStorage.getItem("nexus-theme")) document.documentElement.dataset.theme = localStorage.getItem("nexus-theme");
 

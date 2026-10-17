@@ -52,7 +52,7 @@
           div.innerHTML = '<img class="avatar" src="icon.svg" alt=""><div class="body"><div class="content"></div><div class="meta"><span class="model"></span></div></div>';
           div.querySelector(".content").innerHTML = toHtml(m.content);
           div.querySelector(".model").textContent = m.model || "";
-          div.querySelectorAll("pre code").forEach((b) => b.classList.contains("language-chart") ? renderChart(b) : hljs.highlightElement(b));
+          div.querySelectorAll("pre code").forEach((b) => b.classList.contains("language-chart") ? renderChart(b) : b.classList.contains("language-mermaid") ? renderMermaid(b) : hljs.highlightElement(b));
         }
         document.getElementById("messages").appendChild(div);
       }

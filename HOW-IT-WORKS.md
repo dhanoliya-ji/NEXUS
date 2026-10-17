@@ -318,3 +318,14 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | **⌨️ Shortcuts** | `web/app.js` | Ctrl+K searches chats, Alt+N starts a new chat, "/" jumps to the message box |
 | **💻 qwen3.5:2b** | Ollama on the D drive | The best small model for a 4 GB graphics card; it can also see images |
 | **render.js** | `web/render.js` | Markdown and math rendering, shared by the main page and the share page |
+
+## 19. AI/ML study partner, part 1: explain, diagrams, code, errors
+
+| Feature | File | How |
+|---|---|---|
+| **🎓 Explain mode** (beginner, intermediate, advanced) | `explainPrompt()` in `web/app.js` | Sends a teaching structure as the skill: intuition, math (LaTeX), runnable code, Mermaid diagram, common mistakes, where it's used, and a quiz with hidden answers |
+| **📐 Diagrams** | `renderMermaid()` in `web/runners.js` | **mermaid-js** (MIT) draws ```` ```mermaid ```` blocks. Each diagram has buttons to show its code and download it as SVG, and it's redrawn when the theme changes |
+| **🧑‍💻 Code routing** | `CODE_WORDS` and `CODE_MODELS` in `lib/router.js` | ML library words (pytorch, sklearn, traceback…) count as code, and the strongest coding models go first |
+| **🐞 Error explainer** | `errorLine()` in `lib/understand.js` + the `stackoverflow` tool | A pasted traceback always triggers a Stack Overflow search (top-voted accepted answers), and the answer follows: meaning, cause, fix, prevention |
+| **New research tools** | `lib/tools.js` | `papers` (Hugging Face Papers, then Semantic Scholar with a free key, then arXiv), `trending_papers`, `hf_models`, `hf_datasets`, `github_repos`, `docs` (official docs only: PyTorch, scikit-learn, Transformers, NumPy…) |
+| **Streaming timeout fix** | `callModel()` in `lib/providers.js` | The 30 s timer now covers only "start replying". Long answers are no longer cut off |

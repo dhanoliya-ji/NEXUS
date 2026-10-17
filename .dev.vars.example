@@ -34,3 +34,6 @@ JINA_API_KEY=
 
 # Phone notifications for reminders: any secret name, e.g. nexus-8f3k2...
 NTFY_TOPIC=
+
+# Optional: free Semantic Scholar key for paper citation counts (https://www.semanticscholar.org/product/api#api-key-form)
+S2_API_KEY=
