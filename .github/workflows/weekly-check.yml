@@ -25,7 +25,7 @@ jobs:
           NEXUS_URL: ${{ secrets.NEXUS_URL }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
-          curl -s --max-time 120 -A "NEXUS-weekly-check" -H "x-nexus-key: $NEXUS_PASSWORD" "$NEXUS_URL/api/doctor" > doctor.json \
+          curl -s --max-time 120 -A "NEXUS-weekly-check" -H "x-nexus-password: $NEXUS_PASSWORD" "$NEXUS_URL/api/doctor" > doctor.json \
             || echo '[{"name":"NEXUS website","status":"error","error":"the site did not answer"}]' > doctor.json
           python3 - <<'EOF'
           import json

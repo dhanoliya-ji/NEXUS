@@ -98,7 +98,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .chat-item:hover .del { visibility: visible; }
 .chat-item .del:hover { color: var(--error); }
 
-.sidebar-bottom { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--border); padding-top: 8px; }
+.sidebar-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border-top: 1px solid var(--border); padding-top: 8px; }
 .side-btn { text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 8px; font-size: 14px; }
 .side-btn:hover { background: var(--card); }
 
@@ -263,6 +263,36 @@ dialog textarea, dialog input {
 .new-skill { margin-top: 6px; font-size: 14px; }
 .new-skill summary { cursor: pointer; color: var(--primary); }
 .skill-chip { border-color: var(--primary); }
+
+/* Forms inside pop-ups */
+dialog.wide { width: min(720px, calc(100% - 32px)); }
+.form-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0; }
+.form-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.form-row label.check { flex-direction: row; align-items: center; }
+.form-row label.check input { width: auto; margin: 0; }
+.form-row select, .form-row input { margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--sidebar); color: var(--text); font: inherit; font-size: 14px; }
+.form-row input#remText { flex: 1; min-width: 160px; }
+
+/* Image gallery */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; max-height: 50vh; overflow-y: auto; }
+.gallery a { display: block; }
+.gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: var(--card); }
+
+/* Usage bars */
+.usage-row { display: grid; grid-template-columns: 120px 1fr 80px; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; }
+.bar { height: 8px; border-radius: 4px; background: var(--card); overflow: hidden; }
+.bar div { height: 100%; background: var(--primary); }
+.bar div.high { background: var(--error); }
+.week { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 14px; }
+.week div { flex: 1; background: var(--primary); border-radius: 4px 4px 0 0; position: relative; min-height: 2px; }
+.week small { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--muted); }
+
+/* Little pop-up message (toast) */
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); z-index: 50;
+  background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 12px; font-size: 14px;
+  box-shadow: 0 6px 24px #0004;
+}
 
 /* Printing (for "Download as PDF"): only the conversation */
 @media print {

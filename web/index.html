@@ -6,7 +6,9 @@
   <title>NEXUS</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#faf9f5">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#cc785c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
 
   <!-- Fonts: a serif for headings, a clean sans for text (free Google Fonts) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,9 +46,13 @@
 
     <div class="sidebar-bottom">
       <button class="side-btn" id="openDocs">📚 Documents</button>
+      <button class="side-btn" id="openImages">🎨 Images</button>
+      <button class="side-btn" id="openReminders">⏰ Reminders</button>
+      <button class="side-btn" id="openUsage">📊 Usage</button>
       <button class="side-btn" id="openMemory">🧠 Memory</button>
       <button class="side-btn" id="openDoctor">🩺 Doctor</button>
       <button class="side-btn" id="toggleTheme">🌗 Theme</button>
+      <button class="side-btn" id="openLogout">🚪 Log out</button>
     </div>
   </aside>
   <div id="overlay"></div>
@@ -103,9 +109,20 @@
     <form method="dialog" id="passwordForm">
       <h2>Welcome to NEXUS</h2>
       <p>Enter your password to continue.</p>
-      <input id="passwordInput" type="password" placeholder="Password" required>
+      <input id="passwordInput" type="password" placeholder="Password" required autocomplete="current-password">
+      <p id="loginError" class="error-text"></p>
       <button class="primary" type="submit">Unlock</button>
     </form>
+  </dialog>
+
+  <dialog id="logoutBox">
+    <h2>🚪 Log out</h2>
+    <p class="muted">"Everywhere" logs out every phone, laptop and browser where you used NEXUS. You'll need your password again on each.</p>
+    <div class="row" style="justify-content:flex-start">
+      <button class="primary" id="logoutHere">Log out this device</button>
+      <button class="primary" id="logoutAll" style="background:var(--error)">Log out everywhere</button>
+    </div>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
   <dialog id="memoryBox">
@@ -140,6 +157,65 @@
       <textarea id="skillPrompt" rows="4" placeholder="Instructions, e.g. Act as an experienced startup mentor. Be direct, give practical next steps…"></textarea>
       <button class="primary" id="saveSkill">Save skill</button>
     </details>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
+  </dialog>
+
+  <dialog id="imageBox" class="wide">
+    <h2>🎨 Create an image</h2>
+    <textarea id="imgPrompt" rows="3" placeholder="Describe the picture, e.g. a cozy tea stall in Jaipur at night, rain, warm lights"></textarea>
+    <div class="form-row">
+      <label>Style
+        <select id="imgStyle">
+          <option value="">Any</option>
+          <option value="realistic photo, 35mm, natural light, highly detailed">📷 Photo</option>
+          <option value="anime style, vibrant colors, clean lines">🌸 Anime</option>
+          <option value="digital art, concept art, dramatic lighting">🖌️ Digital art</option>
+          <option value="watercolor painting, soft colors, paper texture">🎨 Watercolor</option>
+          <option value="3D render, Pixar style, soft lighting">🧸 3D cartoon</option>
+          <option value="pixel art, 16-bit, retro game">👾 Pixel art</option>
+          <option value="minimal flat vector logo, simple shapes, white background">🔷 Logo</option>
+          <option value="pencil sketch, black and white, detailed shading">✏️ Sketch</option>
+        </select>
+      </label>
+      <label>Size
+        <select id="imgSize">
+          <option value="1024x1024">⬛ Square</option>
+          <option value="768x1344">📱 Portrait (phone)</option>
+          <option value="1344x768">🖥️ Landscape (wallpaper)</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" id="imgEnhance" checked> ✨ Improve my prompt</label>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="ghost" id="showGallery">🖼️ My gallery</button>
+      <span>
+        <button class="ghost" data-close>Close</button>
+        <button class="primary" id="makeImageBtn">Create</button>
+      </span>
+    </div>
+    <div id="gallery" class="gallery"></div>
+  </dialog>
+
+  <dialog id="remindersBox">
+    <h2>⏰ Reminders</h2>
+    <p class="muted">Tip: just ask in chat — "remind me tomorrow at 9 to call Rohan".</p>
+    <div class="form-row">
+      <input id="remWhen" type="datetime-local">
+      <input id="remText" placeholder="What to remind you about">
+      <button class="primary" id="addReminder">Add</button>
+    </div>
+    <div id="remList" class="muted"></div>
+    <details class="new-skill">
+      <summary>📱 Get reminders on your phone (free)</summary>
+      <p class="muted" id="ntfyHelp"></p>
+    </details>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
+  </dialog>
+
+  <dialog id="usageBox">
+    <h2>📊 Usage today</h2>
+    <p class="muted">How many answers each free AI gave today, and roughly how close it is to its free daily limit.</p>
+    <div id="usageResult" class="muted">Loading…</div>
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 

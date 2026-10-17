@@ -16,15 +16,18 @@ let currentChatId = null;   // which chat is open (null = new chat)
 let history = [];           // messages of the open chat: [{role, content}]
 let busy = false;           // true while NEXUS is answering
 
-// Call our backend. Adds the password automatically.
+// Your login token (made when you log in; the password itself is never stored)
+const token = () => localStorage.getItem("nexus-token") || "";
+
+// Call our backend. Adds the login token automatically.
 async function api(path, method, body) {
   const res = await fetch("/api/" + path, {
     method: method || "GET",
-    headers: { "Content-Type": "application/json", "x-nexus-key": localStorage.getItem("nexus-key") || "" },
+    headers: { "Content-Type": "application/json", "x-nexus-key": token() },
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (res.status === 401) {          // wrong or missing password → ask for it
-    askPassword();
+  if (res.status === 401 || res.status === 429) {   // not logged in (or locked) → show the login box
+    askPassword(res.status === 429 ? "Too many wrong passwords. Try again in 15 minutes." : "");
     throw new Error("password needed");
   }
   return res;
@@ -391,9 +394,16 @@ function showAnswer(div, answer, thinking) {
 }
 
 // Create a picture with Pollinations.ai (free, no key needed)
+// Options come from the 🎨 window (style, size, improve prompt); /image in chat uses the defaults.
+let imageOptions = null;
 async function makeImage(prompt) {
-  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
-    "?width=1024&height=1024&nologo=true&seed=" + Math.floor(Math.random() * 99999);
+  const opt = imageOptions || { style: "", size: "1024x1024", enhance: true };
+  imageOptions = null;
+  const [width, height] = opt.size.split("x");
+  const fullPrompt = opt.style ? prompt + ", " + opt.style : prompt;
+  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(fullPrompt) +
+    "?width=" + width + "&height=" + height + "&nologo=true" + (opt.enhance ? "&enhance=true" : "") +
+    "&seed=" + Math.floor(Math.random() * 99999);
   const answer = "![" + prompt.replace(/[\[\]]/g, "") + "](" + url + ")\n\n*" + prompt + "*";
 
   addMessage("assistant", answer, "Pollinations.ai · image");
@@ -648,6 +658,145 @@ $("exportPdf").onclick = () => {
   setTimeout(() => window.print(), 200);    // choose "Save as PDF" in the print window
 };
 
+// ---------- Small helpers for messages on screen ----------
+
+function toast(text) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+const timeText = (ms) => new Date(ms).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+
+// ---------- 🎨 Images window ----------
+
+$("openImages").onclick = () => {
+  $("gallery").innerHTML = "";
+  $("imageBox").showModal();
+  $("imgPrompt").focus();
+};
+
+$("makeImageBtn").onclick = () => {
+  const prompt = $("imgPrompt").value.trim();
+  if (!prompt) return alert("Describe the picture first.");
+  imageOptions = { style: $("imgStyle").value, size: $("imgSize").value, enhance: $("imgEnhance").checked };
+  $("imageBox").close();
+  $("imgPrompt").value = "";
+  send("/image " + prompt);        // same path as typing /image in the chat
+};
+
+$("showGallery").onclick = async () => {
+  $("gallery").textContent = "Loading…";
+  const images = await (await api("gallery")).json();
+  $("gallery").innerHTML = images.length ? "" : "No pictures yet.";
+  for (const img of images) {
+    const link = document.createElement("a");
+    link.href = img.url;
+    link.target = "_blank";
+    link.title = img.prompt;
+    link.innerHTML = '<img loading="lazy" alt="">';
+    link.querySelector("img").src = img.url;
+    $("gallery").appendChild(link);
+  }
+};
+
+// ---------- ⏰ Reminders window ----------
+
+$("openReminders").onclick = async () => {
+  $("remindersBox").showModal();
+  // default time: 1 hour from now (datetime-local wants "YYYY-MM-DDTHH:MM" in YOUR time zone)
+  const soon = new Date(Date.now() + 3600000 - new Date().getTimezoneOffset() * 60000);
+  $("remWhen").value = soon.toISOString().slice(0, 16);
+  drawReminders();
+};
+
+async function drawReminders() {
+  const data = await (await api("reminders")).json();
+  $("remList").innerHTML = data.upcoming.length ? "" : "No upcoming reminders.";
+  for (const r of data.upcoming) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "⏰ <span></span><small></small><button title='Delete'>🗑</button>";
+    row.querySelector("span").textContent = r.text;
+    row.querySelector("small").textContent = timeText(r.due);
+    row.querySelector("button").onclick = async () => { await api("reminders/" + r.id, "DELETE"); drawReminders(); };
+    $("remList").appendChild(row);
+  }
+  $("ntfyHelp").innerHTML = data.ntfyTopic
+    ? "1. Install the free <b>ntfy</b> app (Play Store / App Store).<br>2. Tap <b>+</b> and subscribe to this topic:<br><code>" +
+      data.ntfyTopic + "</code><br>3. Done — reminders will pop up on your phone (keep the topic name secret)."
+    : "Phone alerts are not set up yet (NTFY_TOPIC is missing).";
+}
+
+$("addReminder").onclick = async () => {
+  if (!$("remWhen").value || !$("remText").value.trim()) return alert("Pick a time and write what to remind you about.");
+  await api("reminders", "POST", { due: new Date($("remWhen").value).getTime(), text: $("remText").value.trim() });
+  $("remText").value = "";
+  drawReminders();
+  toast("⏰ Reminder saved");
+};
+
+// While the website is open, check every minute for reminders that are due now
+const shownReminders = new Set(JSON.parse(localStorage.getItem("nexus-shown") || "[]"));
+async function checkReminders() {
+  if (!token()) return;
+  try {
+    const data = await (await api("reminders")).json();
+    const now = Date.now();
+    const all = data.upcoming.concat(data.sent);
+    for (const r of all) {
+      if (r.due <= now && now - r.due < 30 * 60000 && !shownReminders.has(r.id)) {
+        shownReminders.add(r.id);
+        toast("⏰ " + r.text);
+        if ("Notification" in window && Notification.permission === "granted") new Notification("NEXUS reminder", { body: r.text, icon: "icon-192.png" });
+      }
+    }
+    localStorage.setItem("nexus-shown", JSON.stringify([...shownReminders].slice(-100)));
+  } catch (e) { /* offline or logged out */ }
+}
+setInterval(checkReminders, 60000);
+// Ask once for permission to show desktop notifications
+$("openReminders").addEventListener("click", () => {
+  if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+});
+
+// ---------- 📊 Usage window ----------
+
+$("openUsage").onclick = async () => {
+  $("usageBox").showModal();
+  const u = await (await api("usage")).json();
+  let html = "";
+  for (const p of u.providers) {
+    const pct = p.limit ? Math.min(100, Math.round((p.count / p.limit) * 100)) : 0;
+    html += '<div class="usage-row"><span>' + p.name + '</span><div class="bar"><div class="' + (pct > 80 ? "high" : "") +
+      '" style="width:' + (p.limit ? pct : 100) + '%;' + (p.limit ? "" : "opacity:.25") + '"></div></div><small>' +
+      p.count + (p.limit ? " / ~" + p.limit : "") + "</small></div>";
+  }
+  if (!u.providers.length) html = "No answers yet today.";
+  if (u.week.length) {
+    const max = Math.max(...u.week.map((d) => d.count));
+    html += '<p class="muted" style="margin-top:18px">Last 7 days</p><div class="week">' + u.week.map((d) =>
+      '<div style="height:' + Math.max(3, (d.count / max) * 100) + '%" title="' + d.count + ' answers"><small>' + d.day.slice(5) + "</small></div>").join("") + "</div>";
+  }
+  if (u.models.length) {
+    html += '<p class="muted" style="margin-top:28px">Models used today</p>' + u.models.slice(0, 10).map((m) =>
+      '<div class="doc-row"><span>' + m.name + " · " + m.model + "</span><small>" + m.count + "</small></div>").join("");
+  }
+  $("usageResult").innerHTML = html;
+};
+
+// ---------- 📱 Phone app (PWA) ----------
+// The service worker (sw.js) keeps a copy of the website, so it opens instantly and works offline.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// "Share to NEXUS" from other apps opens  /?text=...  → put it in the message box
+const shared = new URLSearchParams(location.search);
+if (shared.get("text") || shared.get("url")) {
+  $("input").value = [shared.get("title"), shared.get("text"), shared.get("url")].filter(Boolean).join("\n");
+  window.history.replaceState(null, "", "/");   // clean the address bar ("history" alone is our chat list)
+}
+
 // ---------- 🎤 Voice input ----------
 // Records your voice in the browser, sends it to /api/transcribe (free Whisper),
 // and puts the text in the message box so you can check it before sending.
@@ -677,7 +826,7 @@ $("micBtn").onclick = async () => {
       form.append("audio", new Blob(chunks, { type: recorder.mimeType }), "voice.webm");
       const res = await fetch("/api/transcribe", {
         method: "POST",
-        headers: { "x-nexus-key": localStorage.getItem("nexus-key") || "" },
+        headers: { "x-nexus-key": token() },
         body: form,
       });
       const data = await res.json();
@@ -713,13 +862,40 @@ function speak(text, button) {
 
 // ---------- 5. Pop-ups and buttons ----------
 
-function askPassword() {
+function askPassword(message) {
+  $("loginError").textContent = message || "";
   if (!$("passwordBox").open) $("passwordBox").showModal();
 }
-$("passwordForm").onsubmit = () => {
-  localStorage.setItem("nexus-key", $("passwordInput").value);
-  setTimeout(start, 50);
+
+// Log in: send the password once, keep only the token we get back
+$("passwordForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const res = await fetch("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: $("passwordInput").value }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    $("loginError").textContent = data.error;
+    return;
+  }
+  localStorage.setItem("nexus-token", data.token);
+  localStorage.removeItem("nexus-key");     // old versions stored the password itself — delete it
+  $("passwordInput").value = "";
+  $("passwordBox").close();
+  start();
 };
+
+// Log out this device, or every device
+$("openLogout").onclick = () => $("logoutBox").showModal();
+async function logout(everywhere) {
+  await api("logout", "POST", { everywhere: everywhere }).catch(() => {});
+  localStorage.removeItem("nexus-token");
+  location.reload();
+}
+$("logoutHere").onclick = () => logout(false);
+$("logoutAll").onclick = () => logout(true);
 
 $("openMemory").onclick = async () => {
   const res = await api("profile");

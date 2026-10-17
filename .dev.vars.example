@@ -31,3 +31,6 @@ NEXUS_URL=
 # Web search (free, no card): https://app.tavily.com  and  https://jina.ai/api-dashboard
 TAVILY_API_KEY=
 JINA_API_KEY=
+
+# Phone notifications for reminders: any secret name, e.g. nexus-8f3k2...
+NTFY_TOPIC=

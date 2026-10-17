@@ -178,9 +178,39 @@ A skill is extra instructions placed near the top of the system prompt. The buil
 
 `/image ...` doesn't need the backend at all. It builds a Pollinations.ai image URL, and the free service draws the picture.
 
-## 8. Password
+## 8. Login and safety (`lib/auth.js`)
 
-`_middleware.js` runs before every `/api` request. If `NEXUS_PASSWORD` is set, the request must carry the header `x-nexus-key` with the same value. The browser remembers your password in `localStorage`.
+`_middleware.js` runs before every `/api` request.
+- **Browsers** log in once at `/api/login`. The server checks the password and returns a long random **token**, saved in the `sessions` table. The browser keeps only the token and sends it as the `x-nexus-key` header.
+- **Scripts** (the D drive backup and the GitHub bots) send the password as the `x-nexus-password` header.
+- **Wrong passwords** are counted per internet address in `login_fails`. After 10 within 15 minutes, that address gets "429 locked".
+- **Log out everywhere** deletes every row in `sessions`, so every device must log in again.
+
+## 9. Math (KaTeX)
+
+In `toHtml()` in `app.js`:
+1. Code blocks are hidden first.
+2. `$…$`, `$$…$$`, `\(…\)` and `\[…\]` are drawn with KaTeX, and each leaves a placeholder.
+3. Markdown is converted.
+4. The placeholders are replaced with the drawn formulas.
+
+A `$` followed by a digit, or with a space just inside it, counts as money, so "$5 and $10" stays normal text.
+
+## 10. Reminders (`lib/reminders.js`)
+
+1. **The `set_reminder` tool:** the tool-picker gets the current India time, so "tomorrow at 9am" becomes `2026-10-18 09:00 | call Rohan`.
+2. **Saving:** the reminder goes into the `reminders` table, with `due` stored in UTC milliseconds.
+3. **Sending:** a GitHub Action (`.github/workflows/reminders.yml`) calls `/api/reminders/run` every 10 minutes. Due reminders are sent with `POST https://ntfy.sh/<your topic>`, and the ntfy app on your phone shows them.
+4. **While the website is open**, it also checks every minute and shows a notification.
+
+## 11. Usage (`lib/usage.js`)
+
+`callModel()` adds 1 to the `usage` table (day, provider, model) after every successful answer. `/api/usage` adds up today's counts and compares them with the approximate free limits.
+
+## 12. Phone app (`web/sw.js`, `manifest.json`)
+
+- The **service worker** keeps a copy of the website files. When you're online it loads the newest files and refreshes the copy; when you're offline it shows the saved copy. It never saves `/api` requests.
+- `share_target` in the manifest puts "NEXUS" in the phone's Share menu, which opens `/?text=…`, and that text goes into the message box.
 
 ## How to add things yourself
 

@@ -1,0 +1,23 @@
+# ============================================================
+#  Reminders — every 10 minutes, ask NEXUS to send due reminders
+# ============================================================
+#  Free on GitHub for public repos. (GitHub may run it a few minutes late
+#  when it's busy, so reminders can arrive up to ~15 minutes late.)
+
+name: Send reminders
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send due reminders
+        env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          curl -s --max-time 60 -X POST -A "NEXUS-reminders" -H "x-nexus-password: $NEXUS_PASSWORD" "$NEXUS_URL/api/reminders/run"

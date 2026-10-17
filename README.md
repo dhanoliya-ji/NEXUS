@@ -23,6 +23,12 @@ NEXUS connects many free AI models (Groq, Gemini, GLM, Mistral, Cerebras, OpenRo
 | **🧩 Skills** | Teacher, Coder, Hinglish, Quiz me… or make your own | REA skills, Voyager paper |
 | **📝 Long-chat summaries** | Older parts of long chats are summarized automatically | MemGPT paper |
 | **⬇️ Export** | Download a chat as Markdown or PDF | — |
+| **⏰ Reminders** | "Remind me tomorrow at 9…" sends a phone push via ntfy.sh, checked every 10 minutes by a GitHub Action | — |
+| **🎨 Images window** | Styles, sizes, prompt improvement and a gallery | Pollinations.ai |
+| **📊 Usage** | Answers per AI today vs. its free daily limit, plus a 7-day chart | — |
+| **🔐 Safety** | Browsers keep a login token, not your password. Log out everywhere. 10 wrong passwords = 15-minute lock | — |
+| **📱 Phone app** | Installable, opens offline, "Share to NEXUS" from other apps | PWA |
+| **➗ Math** | Formulas are drawn with KaTeX | — |
 | **🤖 Weekly bot** | A GitHub Action checks every key each Monday and opens an issue if one breaks | — |
 | **Doctor** | Checks which API keys work | REA repo |
 | **Daily backup to D drive** | `local/backup.py` | — |
