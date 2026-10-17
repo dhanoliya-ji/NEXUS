@@ -206,6 +206,9 @@ function decorateCode(div) {
   div.querySelectorAll("pre code").forEach((block) => {
     if (block.classList.contains("language-chart")) return renderChart(block);
     if (block.classList.contains("language-mermaid")) return renderMermaid(block);
+    // a diagram that the model forgot to label ```mermaid
+    if (!/language-(?!plaintext|text)/.test(block.className) &&
+      /^\s*(flowchart|graph)\s+(TD|TB|LR|RL|BT)\b|^\s*(sequenceDiagram|classDiagram|stateDiagram|erDiagram|mindmap)\b/.test(block.textContent)) return renderMermaid(block);
     // Special blocks from the 🔬 deep modes (python.js). Recognized by their label OR their content,
     // because some models label every block "python":
     const code = block.textContent;
@@ -316,6 +319,7 @@ async function askAI(text, choice, images, extra) {
   if (choice.startsWith("deep-")) {
     body.skill = null;
     body.skillPrompt = deepPrompt(choice.slice(5));
+    body.mustTools = (DEEP_MODES[choice.slice(5)] || {}).tools || [];
     body.model = "auto";
     choice = "auto";
   }

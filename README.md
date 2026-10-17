@@ -68,5 +68,9 @@ NEXUS reuses open-source work. Thank you to:
 |---|---|---|
 | [danielmiessler/fabric](https://github.com/danielmiessler/fabric) | 250+ expert prompts in the 🧩 skills library | MIT |
 | [f/prompts.chat](https://github.com/f/prompts.chat) | 300 "act as…" personas in the skills library | CC0 |
+| [alirezadir/AIMLInterviews](https://github.com/alirezadir/AIMLInterviews) | 🗺️ roadmap topics and interview questions | MIT |
+| [karpathy/micrograd](https://github.com/karpathy/micrograd), [nanoGPT](https://github.com/karpathy/nanoGPT), [minbpe](https://github.com/karpathy/minbpe) | 📚 tiny reference implementations shown by the 🔍 source mode (fetched live, not copied) | MIT |
+| [labmlai/annotated_deep_learning_paper_implementations](https://github.com/labmlai/annotated_deep_learning_paper_implementations) | 📚 annotated paper implementations (fetched live) | MIT |
+| [Sourcegraph](https://sourcegraph.com/search) public code search | finding where a class or function lives in PyTorch, scikit-learn, transformers… | free service |
 | Hugging Face models via Cloudflare Workers AI | Qwen3-Embedding (meaning search), BAAI bge-reranker | Apache-2.0 / MIT |
 | Ideas from research papers | Mem0, Zep, LongMemEval, CRAG, Adaptive-RAG, RAG-Fusion, Mixture-of-Thought cascades, SelfCheckGPT, Chatbot Arena, ACE, Universal Self-Consistency, STORM | — |

@@ -370,3 +370,36 @@ Tested end to end on the live site with puppeteer: login, scikit-learn code then
 | **💼 Interview practice** | `web/learn.js` | Real questions in 3 categories (ML fundamentals, LLMs and GenAI, ML system design). Answer in chat and NEXUS grades it out of 10: what was good, what's missing, a model answer, and a follow-up question |
 
 Tested end to end on the live site with puppeteer: roadmap → mark topic → flashcards from topic → review and rate → interview question → graded answer.
+
+## 24. Understand deeply: the math, the code, and why it works
+
+Pick a mode from **🔬 Understand deeply** in the model dropdown. Each mode is a strict set of instructions (`web/deep.js`) that forces one kind of explanation: every symbol defined, every shape stated, and no "it can be shown".
+
+| Mode | What you get |
+|---|---|
+| 📐 Derive | Goal → prerequisites → numbered steps, each with **Why:** naming the rule used → result → intuition → NumPy code |
+| 📜 Prove | Theorem, assumptions (and why each is needed), proof ending in ∎, and a counterexample when an assumption is dropped |
+| 🔗 Equation ↔ code | A two-column grid: each formula next to the NumPy line that computes it, then a from-scratch implementation checked against scikit-learn / SciPy |
+| 🔍 How it's really implemented | The **real library source**, quoted and explained line by line: call path, math ↔ code, design choices, plus a minimal version |
+| 🔢 Tiny worked example | The whole computation on 2×2-sized real numbers, every intermediate result written out |
+| 🐢 Step-through | A ◀ ▶ stepper that shows the algorithm's state after each step |
+| 📏 Shape trace | Every line annotated with tensor shapes like `(B, T, C) → (B, T, n_head, head_dim)` |
+| ❓ Why it works | The problem it solves, the mechanism, assumptions, inductive bias, the geometric and probabilistic views, and failure cases |
+| 🧪 Ablation | A tiny experiment that trains with and without a component and plots both curves |
+| 📊 Visualize | Plots that build intuition (loss landscapes, decision boundaries, transformations) |
+
+**✔️ Python checks the math** (`web/python.js`). Answers end with a `verify` block that runs automatically in your browser: SymPy for algebra, NumPy for numbers, finite differences for gradients. The badge shows one of three results:
+- ✔ verified
+- ✘ a math check failed
+- ⚠️ the check code itself is broken, which says nothing about the math
+
+When a check fails, `functions/api/fixcode.js` reviews it once (idea from the *Self-Debugging* paper). An unfair check gets corrected, for example a too-tight tolerance on a random average or regularization left on in scikit-learn. Real math errors are kept and reported.
+
+**🔍 Real source code** (`lib/source.js`, two tools the AI can also call on its own):
+- `source_code` takes input like `torch | Dropout` or `sklearn | LogisticRegression.fit`. Sourcegraph's free code search finds the file and line; the file is downloaded from GitHub at that exact commit and just that class or method is cut out. Long docstrings are shortened, and the answer links to the exact lines.
+- `reference_impl` takes a topic such as `attention`, `lora` or `backprop`. It returns a small from-scratch implementation from karpathy's micrograd, nanoGPT or minbpe, or from labml.ai's annotated papers (math and code side by side). All are MIT licensed, fetched live and credited.
+- The 🔍 mode makes sure both tools run (`mustTools`). If the tool-picking model forgets `source_code`, `guessSourceInput()` reads the library and the name straight from your question.
+
+**📏 Shapes button** on Python blocks runs the code with an AST tracer and shows each variable's shape next to the line that made it.
+
+Tested end to end on the live site with puppeteer: derive (2 checks verified), equation ↔ code grid, stepper (◀ ▶), shapes, and the source mode on PyTorch Dropout and scikit-learn StandardScaler (the real file and line links appeared in the answer).

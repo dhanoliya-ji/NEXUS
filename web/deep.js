@@ -13,12 +13,16 @@ const DEEP_RULES =
   "\nVERIFY BLOCK (required when there is math or numbers): finish with a code block whose fence language is EXACTLY `verify` " +
   "(write ```verify, NOT ```python) containing self-contained Python that CHECKS the key results — use sympy for algebra/calculus " +
   "(sp.simplify(lhs - rhs) == 0) and numpy for numerical checks (np.allclose, finite-difference gradient checks). " +
-  "For each check: assert it, then print('✔ <what was checked>'). Keep it under ~40 lines and fast (<10 s); only numpy, sympy, scipy, sklearn. " +
+  "For each check: assert it, then print('✔ <what was checked>'). NEXUS runs the block and shows the REAL result, so " +
+  "NEVER write what it prints or claim the checks pass (no 'Running the block prints: ✔ ...'). Keep it under ~40 lines and fast (<10 s); only numpy, sympy, scipy, sklearn. " +
   "Make the check FAIR and ROBUST: (1) to compare two symbolic expressions, substitute 3 random numeric values and use np.isclose " +
   "(sp.simplify can miss true equalities); use scalar symbols, not sympy Matrices, for element-wise formulas. (2) When comparing with " +
   "scikit-learn, match its settings exactly (e.g. LogisticRegression(penalty=None), same intercept handling, enough iterations) and " +
   "compare PREDICTIONS / probabilities with a tolerance rather than raw parameters. (3) Gradient checks: central finite differences, " +
-  "eps=1e-6, relative error < 1e-5. (4) The block must be self-contained: redefine any function it needs.";
+  "eps=1e-6, relative error < 1e-5. (4) The block must be self-contained: redefine any function it needs. (5) Random / statistical " +
+  "claims (dropout mean, sampling, initialization variance): np.random.seed(0), a LARGE sample (≥ 200000 values) and a tolerance of " +
+  "5 standard errors, computed in the code: assert abs(y.mean() - expected) < 5 * y.std() / np.sqrt(y.size) — never a fixed " +
+  "atol like 1e-3 for random averages.";
 
 const DEEP_MODES = {
   derive: {
@@ -48,6 +52,24 @@ const DEEP_MODES = {
       "(```python), commented.\n## 🔍 Why each line — the non-obvious choices (numerical stability tricks, broadcasting, axis choices).\n" +
       "## ✔️ Check against the library — a ```verify block that runs your from-scratch version AND a reference " +
       "(numpy/scipy/scikit-learn) on the same small random input and asserts np.allclose, printing ✔ for each match.",
+  },
+  source: {
+    label: "🔍 How it's really implemented (library source)",
+    tools: ["source_code", "reference_impl"],   // the server fetches the real code first (lib/source.js)
+    prompt: "MODE: SOURCE WALKTHROUGH. The REAL source code of the library and/or a small reference implementation were " +
+      "retrieved for you (see the tool results). Teach how it is actually implemented. Structure:\n" +
+      "## 🗺️ Where it lives — repo, file and the GitHub link from the tool results.\n" +
+      "## 🧭 Call path — what runs, in order, when the user calls it (e.g. nn.Dropout.forward → F.dropout → C++ kernel); " +
+      "a ```mermaid flowchart if there are 3+ hops.\n" +
+      "## 🔍 Line by line — quote the important lines EXACTLY as they appear in the retrieved code (never invent code) and explain " +
+      "what each does and WHY it is written that way.\n## 📐 Math ↔ code — map each formula to the line that computes it.\n" +
+      "## 🧩 Design choices — numerical stability tricks, performance, edge cases, why train/eval differ, etc. If the Python only " +
+      "calls into C++/CUDA (torch._C, aten), say so and explain what the kernel computes (the 'Other definitions' list shows its file).\n" +
+      "## 📚 The minimal version — the reference implementation (credit it: micrograd / nanoGPT / minbpe by Andrej Karpathy, " +
+      "or labml.ai — MIT) or your own 15-40 line NumPy version, and how it differs from the library's.\n" +
+      "## ✔️ Verification — a ```verify block (numpy only, no torch) that implements the minimal version and checks its key " +
+      "properties numerically (e.g. dropout keeps the expected mean via the 1/(1-p) scaling; softmax rows sum to 1 and are shift-invariant).\n" +
+      "If a tool result says the code was not found, say so honestly and explain from your knowledge, marking it as not verified against the source.",
   },
   worked: {
     label: "🔢 Tiny worked example (real numbers)",

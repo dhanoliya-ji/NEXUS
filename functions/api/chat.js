@@ -21,7 +21,7 @@ import { liveStream, infoOf } from "../../lib/live.js";
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages, model, tools, images, skill, skillPrompt, regenerate, avoid } = await context.request.json();
+  const { chatId, messages, model, tools, images, skill, skillPrompt, mustTools, regenerate, avoid } = await context.request.json();
   // messages = [{role:"user", content:"..."}, {role:"assistant", ...}, ...]
   // images   = ["data:image/jpeg;base64,...", ...]  (only for the newest message)
   // regenerate/avoid = 🔄: answer the same message again, with a different AI
@@ -36,7 +36,7 @@ export async function onRequestPost(context) {
     }
 
     // 1. Save message + build instructions
-    const prep = await prepare(env, chatId, messages, { tools, images, skill, skillPrompt, regenerate, onStatus: live.status });
+    const prep = await prepare(env, chatId, messages, { tools, images, skill, skillPrompt, mustTools, regenerate, onStatus: live.status });
 
     // 2. Which models, in which order
     const scores = await providerScores(env.DB).catch(() => ({}));

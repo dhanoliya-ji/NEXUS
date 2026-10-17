@@ -20,6 +20,9 @@ export async function onRequestPost(context) {
     "use scalar symbols for element-wise formulas; with scikit-learn match settings exactly (e.g. penalty=None) and compare predictions " +
     "with a tolerance. If a from-scratch optimizer (gradient descent) is compared with a library optimum, make sure it CONVERGES first " +
     "(more iterations, a suitable learning rate, standardized features, or check that the gradient norm is ~0) before comparing. " +
+    "For random/statistical checks (means of random masks or samples) fix the seed, use ≥ 200000 samples and replace a fixed atol " +
+    "with 5 standard errors computed in the code: abs(y.mean() - expected) < 5 * y.std() / np.sqrt(y.size). That is the correct " +
+    "statistical test, NOT weakening (the 10x limit does not apply to it). " +
     "Reply with ONLY the fixed code in one ```python block.";
   const task = kind === "assert"
     ? "An assert FAILED. Decide why. If the CHECK METHOD is unfair or buggy (not the math), fix the method. If the math being checked is " +

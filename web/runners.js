@@ -134,6 +134,11 @@ function redrawCharts() {
 let mermaidLib = null;
 let diagramCount = 0;
 
+function quoteLabels(source) {
+  return source.replace(/(\b\w+)\[([^\]"]+)\]/g, (m, id, label) => id + '["' + label.replace(/"/g, "'") + '"]')
+    .replace(/(\b\w+)\{([^}"]+)\}/g, (m, id, label) => id + '{"' + label.replace(/"/g, "'") + '"}');
+}
+
 async function renderMermaid(codeBlock) {
   const source = codeBlock.textContent;
   try {
@@ -141,7 +146,10 @@ async function renderMermaid(codeBlock) {
       mermaidLib = (await import("https://cdn.jsdelivr.net/npm/mermaid@12.1.0/dist/mermaid.esm.min.mjs")).default;
     }
     mermaidLib.initialize({ startOnLoad: false, theme: isDark() ? "dark" : "neutral", securityLevel: "strict", fontFamily: "Inter, sans-serif" });
-    const { svg } = await mermaidLib.render("nexus-diagram-" + ++diagramCount, source);
+    // Models often write labels like A[forward (Python)] — the ( ) breaks mermaid. If drawing fails,
+    // put every [label] / {label} in quotes and try once more.
+    const { svg } = await mermaidLib.render("nexus-diagram-" + ++diagramCount, source).catch(() =>
+      mermaidLib.render("nexus-diagram-" + ++diagramCount, quoteLabels(source)));
 
     const box = document.createElement("div");
     box.className = "chart-box diagram-box";
