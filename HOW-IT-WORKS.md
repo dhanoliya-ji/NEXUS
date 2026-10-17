@@ -329,3 +329,14 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | **🐞 Error explainer** | `errorLine()` in `lib/understand.js` + the `stackoverflow` tool | A pasted traceback always triggers a Stack Overflow search (top-voted accepted answers), and the answer follows: meaning, cause, fix, prevention |
 | **New research tools** | `lib/tools.js` | `papers` (Hugging Face Papers, then Semantic Scholar with a free key, then arXiv), `trending_papers`, `hf_models`, `hf_datasets`, `github_repos`, `docs` (official docs only: PyTorch, scikit-learn, Transformers, NumPy…) |
 | **Streaming timeout fix** | `callModel()` in `lib/providers.js` | The 30 s timer now covers only "start replying". Long answers are no longer cut off |
+
+## 20. AI/ML study partner, part 2: notes, PDF and Word, templates
+
+| Feature | File | How |
+|---|---|---|
+| **🗒️ Notes** | `functions/api/notes.js`, `web/notes.js` | "🗒️ Save" under any answer creates a note with a title and topic. The Notes window groups notes by topic and lets you search, preview or edit (markdown), and delete |
+| **Notes become memory** | `lib/chunks.js` → `saveSearchable()` | Each note is also saved as a searchable document (`note-<id>`), with keyword and meaning search, so later answers use your notes |
+| **📑 PDF** | `web/exporter.js` → `exportPdf()` | **html2pdf.js** (MIT) photographs the note exactly as it looks on screen (formulas, diagrams, charts, colored code) onto white A4 pages. The page is built inside an off-screen holder; the page itself must stay normal, or the PDF comes out blank |
+| **📄 Word** | `exportDocx()` | **docx** (MIT): marked's lexer splits the markdown into blocks, and each becomes a real Word heading, paragraph, list, table or code block |
+| **📘 Study guide** | `web/notes.js` | Tick several notes to get one PDF or Word file with a cover page, a contents page and each note on its own page |
+| **📋 Templates** | `lib/skills.js` | Built-in skills: Study notes, Paper summary, Literature review, Cheat sheet, Project report |

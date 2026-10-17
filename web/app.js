@@ -182,7 +182,7 @@ function addMessage(role, text, model, images) {
       '<div class="body"><div class="content"></div>' +
       '<div class="meta"><span class="model"></span><button class="copy">Copy</button><button class="speak">🔊 Read</button>' +
       '<button class="up" title="Good answer">👍</button><button class="down" title="Bad answer (tell NEXUS why)">👎</button>' +
-      '<button class="again" title="Answer again with a different AI">🔄</button></div></div>';
+      '<button class="again" title="Answer again with a different AI">🔄</button><button class="save-note" title="Save as a study note">🗒️ Save</button></div></div>';
     div.querySelector(".content").innerHTML = toHtml(text);
     div.querySelector(".model").textContent = model || "";
     div.dataset.label = model || "";
@@ -191,6 +191,7 @@ function addMessage(role, text, model, images) {
     div.querySelector(".up").onclick = () => sendFeedback(div, true);
     div.querySelector(".down").onclick = () => sendFeedback(div, false);
     div.querySelector(".again").onclick = () => regenerate(div);
+    div.querySelector(".save-note").onclick = () => saveAnswerAsNote(div);   // notes.js
     decorateCode(div);
   }
   $("messages").appendChild(div);
@@ -831,7 +832,7 @@ $("docsInput").onchange = async () => {
 
 $("openExport").onclick = () => {
   // download + share need an open chat; import works anytime
-  ["exportMd", "exportPdf", "shareChat", "unshareChat"].forEach((id) => ($(id).disabled = !currentChatId));
+  ["exportPrettyPdf", "exportDocx", "exportMd", "exportPdf", "shareChat", "unshareChat"].forEach((id) => ($(id).disabled = !currentChatId));
   $("shareLink").hidden = true;
   $("importStatus").textContent = "";
   $("exportBox").showModal();

@@ -44,6 +44,7 @@
     <nav id="chatList"></nav>
 
     <div class="sidebar-bottom">
+      <button class="side-btn" id="openNotes">🗒️ Notes</button>
       <button class="side-btn" id="openDocs">📚 Documents</button>
       <button class="side-btn" id="openImages">🎨 Images</button>
       <button class="side-btn" id="openReminders">⏰ Reminders</button>
@@ -154,6 +155,33 @@
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
+
+  <dialog id="notesBox" class="wide">
+    <h2>🗒️ My notes</h2>
+    <p class="muted">Save answers as notes (🗒️ under any answer). NEXUS also uses your notes when answering. Tick notes to export them together as a study guide.</p>
+    <input id="notesSearch" placeholder="🔎 Search notes…">
+    <div id="notesList" style="max-height:48vh;overflow-y:auto"></div>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+      <span><button class="ghost" id="guidePdf">📘 Study guide PDF</button> <button class="ghost" id="guideDocx">📘 Word</button></span>
+      <span><button class="ghost" data-close>Close</button> <button class="primary" id="newNote">+ New note</button></span>
+    </div>
+  </dialog>
+
+  <dialog id="noteBox" class="wide">
+    <div class="form-row">
+      <input id="noteTitle" placeholder="Title" style="flex:2;min-width:200px">
+      <input id="noteTopic" placeholder="Topic, e.g. NLP / Transformers" list="topicList" style="flex:1;min-width:140px">
+      <datalist id="topicList"></datalist>
+    </div>
+    <div class="skill-tabs"><button data-tab="preview" class="on">👁️ Preview</button><button data-tab="edit">✏️ Edit</button></div>
+    <div id="notePreview" class="content"></div>
+    <textarea id="noteEditor" hidden></textarea>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap">
+      <span><button class="ghost" id="notePdf">📑 PDF</button> <button class="ghost" id="noteDocx">📄 Word</button> <button class="ghost" id="noteMd">Markdown</button> <button class="ghost" id="deleteNote">🗑 Delete</button></span>
+      <span><button class="ghost" data-close>Close</button> <button class="primary" id="saveNote">Save note</button></span>
+    </div>
+  </dialog>
+
   <dialog id="docsBox">
     <h2>📚 My documents</h2>
     <p class="muted">Upload notes, PDFs or Word files once. In every chat, NEXUS searches them and uses the parts that match your question.</p>
@@ -254,8 +282,10 @@
     <h2>⬇️ Download, share or import</h2>
     <p class="muted">Save the open chat as a file:</p>
     <div class="row" style="justify-content:flex-start">
-      <button class="primary" id="exportMd">Markdown (.md)</button>
-      <button class="primary" id="exportPdf">PDF (print)</button>
+      <button class="primary" id="exportPrettyPdf">📑 PDF</button>
+      <button class="primary" id="exportDocx">📄 Word</button>
+      <button class="ghost" id="exportMd">Markdown</button>
+      <button class="ghost" id="exportPdf">Print</button>
     </div>
     <p class="muted">🔗 Share this chat with a read-only link (only this chat — nothing else):</p>
     <div class="row" style="justify-content:flex-start">
@@ -281,5 +311,7 @@
   <script src="render.js"></script>
   <script src="runners.js"></script>
   <script src="app.js"></script>
+  <script src="exporter.js"></script>
+  <script src="notes.js"></script>
 </body>
 </html>
