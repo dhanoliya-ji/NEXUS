@@ -393,7 +393,13 @@ Pick a mode from **🔬 Understand deeply** in the model dropdown. Each mode is 
 - ✘ a math check failed
 - ⚠️ the check code itself is broken, which says nothing about the math
 
-When a check fails, `functions/api/fixcode.js` reviews it once (idea from the *Self-Debugging* paper). An unfair check gets corrected, for example a too-tight tolerance on a random average or regularization left on in scikit-learn. Real math errors are kept and reported.
+**🔧 Fix & run**: when any Python block from an answer crashes on ▶ Run, a button sends the error to `/api/fixcode`. The corrected code replaces the block, so you can compare it with the original, and runs again.
+
+When a check fails, `functions/api/fixcode.js` reviews it (idea from the *Self-Debugging* paper):
+- a crashed check gets up to 2 repairs
+- a failed assert gets 1 review, so a math claim can't be argued away
+- the reviewer may never turn "lower" into "lower or equal"
+- NaN in a result counts as a bug in the code, not in the math An unfair check gets corrected, for example a too-tight tolerance on a random average or regularization left on in scikit-learn. Real math errors are kept and reported.
 
 **🔍 Real source code** (`lib/source.js`, two tools the AI can also call on its own):
 - `source_code` takes input like `torch | Dropout` or `sklearn | LogisticRegression.fit`. Sourcegraph's free code search finds the file and line; the file is downloaded from GitHub at that exact commit and just that class or method is cut out. Long docstrings are shortened, and the answer links to the exact lines.

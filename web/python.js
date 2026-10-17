@@ -90,10 +90,40 @@ async function runPython(code, pre, btn) {
       img.src = "data:image/png;base64," + data;
       out.appendChild(img);
     }
+    if (r.error && typeof api === "function") addFixButton(code, r.error, pre, btn);
   } catch (e) {
     show("❌ " + e.message);
   }
   btn.disabled = false;
+}
+
+// 🔧 Code from an answer crashed → "Fix & run": the error goes to /api/fixcode (Self-Debugging paper),
+// the fixed code replaces the block (so you can see what changed) and runs again.
+function addFixButton(code, error, pre, runBtn) {
+  const fix = document.createElement("button");
+  fix.className = "ghost fix-run";
+  fix.textContent = "🔧 Fix & run";
+  fix.onclick = async () => {
+    fix.disabled = true;
+    fix.textContent = "🔧 Fixing…";
+    const block = pre.querySelector("code");
+    const others = [...(pre.closest(".msg") || document).querySelectorAll("pre code")].filter((b) => b !== block).map((b) => b.textContent);
+    try {
+      const res = await api("fixcode", "POST", { code: code, error: error, context: others.join("\n\n"), kind: "run" });
+      if (!res.ok) throw new Error("could not fix it");
+      const fixed = (await res.json()).code;
+      block.textContent = fixed;
+      block.removeAttribute("data-highlighted");
+      if (typeof hljs !== "undefined") hljs.highlightElement(block);
+      await runPython(fixed, pre, runBtn);
+      const note = outputBox(pre).insertBefore(document.createElement("p"), outputBox(pre).firstChild);
+      note.className = "muted";
+      note.textContent = "🔧 The code above was corrected automatically — compare it with the original if you want to learn what was wrong.";
+    } catch (e) {
+      fix.textContent = "⚠️ " + e.message;
+    }
+  };
+  outputBox(pre).appendChild(fix);
 }
 
 // ---------- ✔️ Verification blocks ----------
@@ -111,19 +141,19 @@ function renderVerify(codeBlock, autoRun, context) {
     '<details><summary>Show the check code</summary><pre><code class="language-python"></code></pre></details><pre class="verify-out" hidden></pre>';
   box.querySelector("code").textContent = code;
   if (typeof hljs !== "undefined") hljs.highlightElement(box.querySelector("code"));
-  box.querySelector(".verify-run").onclick = () => runVerify(box, box.querySelector("code").textContent, context, false);
+  box.querySelector(".verify-run").onclick = () => runVerify(box, box.querySelector("code").textContent, context, 0);
   codeBlock.parentElement.replaceWith(box);
-  if (autoRun) runVerify(box, code, context, false);
+  if (autoRun) runVerify(box, code, context, 0);
 }
 
 // Runs the check. Outcomes:
 //   ✔ all checks passed               → the math is confirmed
-//   check crashed / an assert failed  → NEXUS reviews the CHECK once (Self-Debugging, /api/fixcode):
-//        • crash          → the code is repaired and re-run
-//        • failed assert  → if the check method was unfair it's corrected and re-run;
+//   check crashed / an assert failed  → NEXUS reviews the CHECK (Self-Debugging, /api/fixcode):
+//        • crash          → the code is repaired and re-run (up to 2 tries: usually a small API slip)
+//        • failed assert  → (1 try only, so a claim can't be argued away) if the check method was unfair it's corrected and re-run;
 //                           if the reviewer says the math itself is wrong → "✘ math check failed"
 //   ⚠️ still crashing after the repair → "the check code has an error" (says nothing about the math)
-async function runVerify(box, code, context, repaired) {
+async function runVerify(box, code, context, repairs) {
   const status = box.querySelector(".verify-status");
   const out = box.querySelector(".verify-out");
   box.querySelector(".verify-run").disabled = true;
@@ -136,14 +166,14 @@ async function runVerify(box, code, context, repaired) {
     out.textContent = r.printed + (r.error ? "\n❌ " + r.error : "");
     out.hidden = !out.textContent.trim();
 
-    if ((r.error || mathFailed) && !repaired && typeof api === "function") {
+    if ((r.error || mathFailed) && repairs < (mathFailed ? 1 : 2) && typeof api === "function") {
       status.textContent = mathFailed ? "🔍 A check failed — reviewing whether the check itself is fair…" : "🔧 The check code had an error — fixing it…";
       const res = await api("fixcode", "POST", { code: code, error: r.error || r.printed.slice(-1500), context: context || "", kind: mathFailed ? "assert" : "crash" });
       if (res.ok) {
         const fix = await res.json();
         box.querySelector("code").textContent = fix.code;
         if (typeof hljs !== "undefined") hljs.highlightElement(box.querySelector("code"));
-        if (!fix.mathWrong) return runVerify(box, fix.code, context, true);
+        if (!fix.mathWrong) return runVerify(box, fix.code, context, repairs + 1);
         box.dataset.reason = (fix.code.match(/#\s*MATH_WRONG:?\s*(.*)/) || [])[1] || "";
       }
     }
@@ -153,10 +183,10 @@ async function runVerify(box, code, context, repaired) {
         (box.dataset.reason ? ": " + box.dataset.reason : " — a step may be wrong, read carefully");
     } else if (r.error) {
       box.classList.add("broken");
-      status.textContent = "⚠️ The check code has an error (this doesn't mean the math is wrong)" + (repaired ? " — even after an automatic fix" : "");
+      status.textContent = "⚠️ The check code has an error (this doesn't mean the math is wrong)" + (repairs ? " — even after an automatic fix" : "");
     } else {
       box.classList.add("passed");
-      status.textContent = "✔ Verified by Python" + (passed ? " — " + passed + " check" + (passed > 1 ? "s" : "") + " passed" : "") + (repaired ? " (after correcting the check code)" : "");
+      status.textContent = "✔ Verified by Python" + (passed ? " — " + passed + " check" + (passed > 1 ? "s" : "") + " passed" : "") + (repairs ? " (after correcting the check code)" : "");
     }
   } catch (e) {
     status.textContent = "⚠️ Could not run the check: " + e.message;

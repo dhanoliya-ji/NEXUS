@@ -443,3 +443,4 @@ dialog.lab h3 { font-size: 15px; margin: 18px 0 4px; }
 .lab-table { border-collapse: collapse; width: 100%; font-size: 13px; }
 .lab-table th, .lab-table td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
 .lab-table td:last-child { font-weight: 600; }
+.run-output .fix-run { margin-top: 8px; font-size: 13px; }

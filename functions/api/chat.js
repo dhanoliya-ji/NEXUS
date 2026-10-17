@@ -41,7 +41,7 @@ export async function onRequestPost(context) {
     // 2. Which models, in which order
     const scores = await providerScores(env.DB).catch(() => ({}));
     const plan = hasImages ? planVision(env)
-      : planRoute(env, messages, model, { scores: scores, avoid: avoid, fast: prep.complexity === 0 && (!model || model === "auto") });
+      : planRoute(env, messages, model, { scores: scores, avoid: avoid, fast: prep.complexity === 0 && (!model || model === "auto"), code: /^MODE: /m.test(skillPrompt || "") });
 
     // 3a. Hard question in Auto mode → two AIs + agreement check
     // (not for paper explanations — long text, slow — and not when a mode/skill is active: deep modes check their math with Python)

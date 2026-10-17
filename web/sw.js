@@ -6,7 +6,7 @@
 //  Offline: shows the saved copy, so the app still opens.
 //  /api/... requests are never saved (your chats always come fresh).
 
-const CACHE = "nexus-v8";   // change the number when files are added
+const CACHE = "nexus-v9";   // change the number when files are added
 const FILES = ["/", "/index.html", "/style.css", "/app.js", "/render.js", "/runners.js", "/python.js", "/deep.js", "/exporter.js", "/notes.js", "/learn.js", "/autograd.js", "/icon.svg", "/icon-192.png", "/icon-512.png", "/manifest.json"];
 
 // First install: save the website files

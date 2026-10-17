@@ -109,8 +109,14 @@ const DEEP_MODES = {
     prompt: "MODE: ABLATION EXPERIMENT. Show experimentally why a component matters. Structure:\n## 🧪 Hypothesis — what removing/changing " +
       "the component should do, and why.\n## 🔧 Setup — a TINY experiment (small synthetic data, small model) that runs in a browser in under " +
       "10 seconds using ONLY numpy / scikit-learn / matplotlib (no torch): implement the model in NumPy if needed, train WITH and WITHOUT the " +
-      "component, same seed.\n## 🧑‍💻 Experiment — one ```python block that runs both versions and plots their curves (loss / accuracy / " +
-      "gradient norms) on one matplotlib figure with a legend, and prints the final numbers.\n## 📊 Expected result and why — explain the " +
+      "component, same seed. Pick a setting where the component CLEARLY matters, or the experiment shows nothing: e.g. batch norm → " +
+      "a deep (6+ layer) tanh/sigmoid MLP with badly scaled inputs and a large learning rate; residual connections → 20+ layers; " +
+      "dropout → a big model on a small noisy dataset; momentum → an ill-conditioned (elongated) loss; attention scaling 1/√d → large d. " +
+      "Same data, same initialization, only the component differs. Keep training numerically stable for BOTH versions " +
+      "(epsilon inside sqrt/log/division, clip probabilities, a learning rate that doesn't diverge) — a NaN means the code is wrong. " +
+      "Implement backprop carefully (check it against the forward formulas) or use scikit-learn's MLPClassifier when it has the switch.\n## 🧑‍💻 Experiment — one ```python block that runs both versions and plots their curves (loss / accuracy / " +
+      "gradient norms) on one matplotlib figure with a legend, and prints the final numbers for both versions. Its verify block " +
+      "re-runs a fast version and asserts the claimed difference with a real margin (e.g. at least 10% lower loss).\n## 📊 Expected result and why — explain the " +
       "mechanism behind the difference.\n## ⚠️ Caveats — what this tiny experiment does and doesn't show.",
   },
   visualize: {
