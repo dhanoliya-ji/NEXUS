@@ -206,6 +206,19 @@ function decorateCode(div) {
   div.querySelectorAll("pre code").forEach((block) => {
     if (block.classList.contains("language-chart")) return renderChart(block);
     if (block.classList.contains("language-mermaid")) return renderMermaid(block);
+    // Special blocks from the 🔬 deep modes (python.js). Recognized by their label OR their content,
+    // because some models label every block "python":
+    const code = block.textContent;
+    const fresh = div.dataset.fresh === "1";
+    // the answer's other code, so a broken check can be repaired with full context
+    const context = [...div.querySelectorAll("pre code")].map((b) => b.textContent).filter((t) => t !== code).join("\n\n");
+    if (block.classList.contains("language-verify")) return renderVerify(block, fresh, context);
+    if (block.classList.contains("language-python") && /\bassert\b/.test(code) && /✔/.test(code)) return renderVerify(block, fresh, context);
+    if (block.classList.contains("language-eqcode") || (code.match(/\|\|\|/g) || []).length >= 2) return renderEqcode(block);
+    if (block.classList.contains("language-steps") || (/^\s*\[\s*\{/.test(code) && /"(title|step)"/.test(code))) {
+      renderSteps(block);
+      if (!block.isConnected) return;          // it became a stepper
+    }
     hljs.highlightElement(block);
     if (block.classList.contains("language-python")) addRunButton(block);
     const btn = document.createElement("button");
@@ -299,6 +312,13 @@ async function askAI(text, choice, images, extra) {
     body.skill = null;
     body.skillPrompt = interviewPrompt();
   }
+  // 🔬 Deep-understanding modes (deep.js): derive, prove, equation↔code, worked example…
+  if (choice.startsWith("deep-")) {
+    body.skill = null;
+    body.skillPrompt = deepPrompt(choice.slice(5));
+    body.model = "auto";
+    choice = "auto";
+  }
   // 🎓 Explain mode = a teaching "skill" at the chosen level, answered by the normal router
   if (choice.startsWith("explain-")) {
     body.skill = null;
@@ -385,6 +405,7 @@ async function askAI(text, choice, images, extra) {
   content.classList.remove("typing");
   answer = answer.replace(/<think>[\s\S]*?<\/think>/, "").trim();   // don't save the thinking part
   div.dataset.raw = answer;
+  div.dataset.fresh = "1";              // new answer → ✔️ verification blocks run automatically
   decorateCode(div);
 
   // Save the answer (and let NEXUS update its memory in the background)
@@ -518,6 +539,7 @@ async function findMyPCModels() {
     if (!data.models.length) return;
     const group = document.createElement("optgroup");
     group.label = "💻 My PC (Ollama, private)";
+    group.className = "models";
     for (const m of data.models) {
       const opt = document.createElement("option");
       opt.value = "pc/" + m.name;
@@ -1364,12 +1386,13 @@ async function loadModels() {
   const res = await api("models");
   const models = await res.json();
   const select = $("modelPick");
-  select.querySelectorAll("optgroup").forEach((g) => g.remove());
+  select.querySelectorAll("optgroup.models").forEach((g) => g.remove());   // only the model lists (keep Explain / Deep modes)
 
   const groups = {};
   for (const m of models) {
     if (!groups[m.provider]) {
       groups[m.provider] = document.createElement("optgroup");
+      groups[m.provider].className = "models";
       groups[m.provider].label = m.provider;
       select.appendChild(groups[m.provider]);
     }

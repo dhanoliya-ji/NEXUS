@@ -30,6 +30,7 @@
 
   <script src="render.js"></script>
   <script src="runners.js"></script>
+  <script src="python.js"></script>
   <script>
     // Same look as the main site: user bubbles + assistant answers (markdown, math, charts, code)
     function loadScript(url) {
@@ -52,7 +53,7 @@
           div.innerHTML = '<img class="avatar" src="icon.svg" alt=""><div class="body"><div class="content"></div><div class="meta"><span class="model"></span></div></div>';
           div.querySelector(".content").innerHTML = toHtml(m.content);
           div.querySelector(".model").textContent = m.model || "";
-          div.querySelectorAll("pre code").forEach((b) => b.classList.contains("language-chart") ? renderChart(b) : b.classList.contains("language-mermaid") ? renderMermaid(b) : hljs.highlightElement(b));
+          div.querySelectorAll("pre code").forEach((b) => b.classList.contains("language-chart") ? renderChart(b) : b.classList.contains("language-mermaid") ? renderMermaid(b) : b.classList.contains("language-verify") ? renderVerify(b, false) : b.classList.contains("language-eqcode") ? renderEqcode(b) : b.classList.contains("language-steps") ? renderSteps(b) : hljs.highlightElement(b));
         }
         document.getElementById("messages").appendChild(div);
       }

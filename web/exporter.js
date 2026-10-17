@@ -38,11 +38,24 @@ async function renderForExport(docs, bookTitle) {
   for (const block of [...box.querySelectorAll("pre code")]) {
     if (block.classList.contains("language-chart")) await renderChart(block);
     else if (block.classList.contains("language-mermaid")) await renderMermaid(block);
+    else if (block.classList.contains("language-eqcode")) renderEqcode(block);
+    else if (block.classList.contains("language-steps")) printSteps(block);
     else hljs.highlightElement(block);
   }
   box.querySelectorAll(".chart-actions, .run-code, .copy-code, .chart-table, .diagram-src").forEach((el) => el.remove());
   await new Promise((r) => setTimeout(r, 600));     // let charts finish drawing
   return box;
+}
+
+// 🐢 Step-through blocks in a PDF: all steps one after another
+function printSteps(block) {
+  let steps;
+  try { steps = JSON.parse(block.textContent); } catch (e) {
+    try { steps = JSON.parse(block.textContent.replace(/\\(?!["\\/bfnrtu])/g, "\\\\")); } catch (e2) { return hljs.highlightElement(block); }
+  }
+  const div = document.createElement("div");
+  div.innerHTML = steps.map((s, i) => "<h4>Step " + (i + 1) + " — " + DOMPurify.sanitize(s.title || "") + "</h4>" + toHtml(String(s.body || ""))).join("");
+  block.parentElement.replaceWith(div);
 }
 
 async function exportPdf(docs, filename, bookTitle) {

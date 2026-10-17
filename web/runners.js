@@ -1,5 +1,5 @@
 // ============================================================
-//  runners.js — 📊 charts and ▶ Python code that runs in your browser
+//  runners.js — 📊 charts and 📐 Mermaid diagrams (▶ Python lives in python.js)
 // ============================================================
 //  Both work on code blocks inside NEXUS's answers:
 //   ```chart   {"type":"bar", ...}   → drawn as a real chart (Chart.js)
@@ -174,76 +174,3 @@ async function redrawDiagrams() {
   }
 }
 
-// ---------- ▶ Python in your browser (Pyodide) ----------
-//
-// The first run downloads Python (~10 MB, about 10 seconds), then it's fast.
-// Popular packages (numpy, pandas, matplotlib…) load automatically when imported.
-// matplotlib charts are shown as pictures under the code.
-
-const PYODIDE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
-let pyodide = null;
-
-function addRunButton(codeBlock) {
-  const btn = document.createElement("button");
-  btn.className = "run-code";
-  btn.textContent = "▶ Run";
-  btn.onclick = () => runPython(codeBlock.innerText, codeBlock.parentElement, btn);
-  codeBlock.parentElement.appendChild(btn);
-}
-
-async function runPython(code, pre, btn) {
-  let out = pre.nextElementSibling;
-  if (!out || !out.classList.contains("run-output")) {
-    out = document.createElement("div");
-    out.className = "run-output";
-    pre.after(out);
-  }
-  btn.disabled = true;
-  out.innerHTML = "<pre></pre>";
-  const show = (text) => (out.querySelector("pre").textContent = text);
-
-  try {
-    if (!pyodide) {
-      show("⏳ Starting Python (first time only, ~10 seconds)…");
-      await loadScript(PYODIDE + "pyodide.js");
-      pyodide = await loadPyodide({ indexURL: PYODIDE });
-    }
-    show("⏳ Running…");
-    await pyodide.loadPackagesFromImports(code);     // e.g. "import numpy" → downloads numpy (sklearn, pandas, matplotlib…)
-
-    // Attached CSV/TSV/JSON files (app.js keeps them in dataFiles) → Python's virtual disk,
-    // so the code can simply do pd.read_csv("myfile.csv")
-    if (typeof dataFiles !== "undefined") {
-      for (const [name, text] of Object.entries(dataFiles)) pyodide.FS.writeFile(name, text);
-    }
-
-    let printed = "";
-    pyodide.setStdout({ batched: (s) => (printed += s + "\n") });
-    pyodide.setStderr({ batched: (s) => (printed += s + "\n") });
-    const usesPlot = /matplotlib|plt\./.test(code);
-    if (usesPlot) await pyodide.runPythonAsync("import matplotlib\nmatplotlib.use('AGG')");
-    // hide library warnings (e.g. pandas "Pyarrow will become required…") so you see your results
-    await pyodide.runPythonAsync("import warnings\nwarnings.filterwarnings('ignore')");
-
-    const result = await pyodide.runPythonAsync(code);
-    if (result !== undefined && result !== null && !printed.trim()) printed += String(result);
-    show(printed.trim() || "✅ Done (no output)");
-
-    // Collect matplotlib figures as PNG pictures
-    if (usesPlot) {
-      const images = pyodide.runPython(
-        "import io, base64\nimport matplotlib.pyplot as plt\n_imgs = []\n" +
-        "for n in plt.get_fignums():\n    b = io.BytesIO()\n    plt.figure(n).savefig(b, format='png', dpi=110, bbox_inches='tight')\n" +
-        "    _imgs.append(base64.b64encode(b.getvalue()).decode())\nplt.close('all')\n_imgs"
-      ).toJs();
-      for (const data of images) {
-        const img = document.createElement("img");
-        img.src = "data:image/png;base64," + data;
-        out.appendChild(img);
-      }
-    }
-  } catch (e) {
-    show("❌ " + e.message.split("\n").slice(-4).join("\n"));   // the last lines of a Python error are the useful part
-  }
-  btn.disabled = false;
-}

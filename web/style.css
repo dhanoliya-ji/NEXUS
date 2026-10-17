@@ -404,3 +404,30 @@ dialog.wide { width: min(720px, calc(100% - 32px)); }
 
 /* Links inside pop-up windows: readable in light and dark mode */
 dialog a { color: var(--primary); }
+
+/* ✔️ verification, 📏 shapes, 🔗 equation↔code, 🐢 stepper (python.js) */
+.shapes-btn { right: 128px !important; }
+.verify-box { margin: 12px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--sidebar); font-family: var(--sans); font-size: 14px; }
+.verify-box.passed { border-color: var(--ok); }
+.verify-box.failed { border-color: var(--error); }
+.verify-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.verify-box.passed .verify-status { color: var(--ok); font-weight: 600; }
+.verify-box.failed .verify-status { color: var(--error); font-weight: 600; }
+.verify-run { font-size: 12px; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--border); background: none; }
+.verify-out { margin: 8px 0 0; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; background: none !important; color: var(--text) !important; padding: 0 !important; }
+.verify-box details summary { cursor: pointer; color: var(--muted); font-size: 12px; margin-top: 6px; }
+.shape-trace { font-family: var(--mono); font-size: 12.5px; }
+.shape-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 1px 0; }
+.shape-row code { background: none; white-space: pre; overflow-x: auto; }
+.shape-row span { color: var(--primary); white-space: nowrap; }
+.eqcode { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin: 12px 0; align-items: center; }
+.eq-head { font-family: var(--sans); font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: .5px; }
+.eq-math { overflow-x: auto; }
+.eqcode pre { margin: 0; font-size: 12.5px; }
+.stepper { margin: 12px 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--sidebar); }
+.step-head { display: flex; align-items: center; gap: 10px; font-family: var(--sans); font-size: 14px; }
+.step-head b { flex: 1; }
+.step-head button { padding: 3px 12px; }
+@media (max-width: 800px) { .eqcode { grid-template-columns: 1fr; } .shape-row { grid-template-columns: 1fr; } }
+.verify-box.broken { border-color: var(--muted); }
+.verify-box.broken .verify-status { color: var(--muted); font-weight: 600; }
