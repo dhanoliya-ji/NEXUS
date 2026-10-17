@@ -31,11 +31,13 @@ jobs:
         run: git diff HEAD~1 HEAD -- lib functions web scripts ':!web/skills-library.json' | head -c 80000 > change.diff
       - name: Gemini reviews it
         id: gemini
+        continue-on-error: true          # out of free quota today → skip quietly, try again next push
         uses: google-github-actions/run-gemini-cli@v0
         env:
           GEMINI_CLI_TRUST_WORKSPACE: "true"
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: gemini-3.1-flash-lite   # light model with its own free quota
           prompt: |
             You review code changes for NEXUS, a personal AI assistant (vanilla JS website + Cloudflare Pages Functions + D1).
             Read the file change.diff (the latest commit). Report ONLY real problems: bugs, crashes, broken logic,

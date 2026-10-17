@@ -39,7 +39,9 @@ export async function onRequestPost(context) {
   const judges = PROVIDERS.filter((p) => p.id !== id && p.id !== "ollama" && isReady(p, env)).map((p) => p.id);
   const scores = [];
   for (let i = 0; i < TESTS.length; i++) {
-    if (answers[i].status !== "fulfilled" || !answers[i].value.trim()) { scores.push(1); continue; }
+    // No answer because of a limit or outage (429, timeout…) says nothing about quality → skip it
+    if (answers[i].status !== "fulfilled") continue;
+    if (!answers[i].value.trim()) { scores.push(1); continue; }   // answered, but empty = bad
     const grade = await askHelper(env, [
       { role: "system", content: "You grade an AI answer against a reference. Score 1-10 for correctness first, then clarity and following instructions. Reply ONLY with JSON: {\"score\": n}" },
       { role: "user", content: "QUESTION: " + TESTS[i].q + "\nREFERENCE: " + TESTS[i].ref + "\nANSWER TO GRADE:\n" + answers[i].value.slice(0, 4000) },
@@ -47,7 +49,8 @@ export async function onRequestPost(context) {
     const n = Number((grade.match(/"score"\s*:\s*(\d+(\.\d+)?)/) || [])[1]);
     if (n >= 1 && n <= 10) scores.push(n);
   }
-  if (!scores.length) return json({ error: "no grades" }, 502);
+  // Too few real answers (busy / out of quota today) → don't save a score that isn't fair
+  if (scores.length < 3) return json({ provider: id, model: model, skipped: "only " + scores.length + " answers graded (busy or out of quota?)" });
 
   // 3. Save the average as this model's test score
   const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10;
