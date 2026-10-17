@@ -306,3 +306,15 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | **Deploy** (`deploy.yml`) | after checks pass | Puts the site live with Cloudflare's wrangler-action, once you add the token (see SETUP.md) |
 | **Dependabot** | monthly | Pull requests when a tool has an update |
 | **Reminders** (`reminders.yml`) | every 10 min | Sends due reminders to your phone |
+
+## 18. New abilities (Phase 6)
+
+| Feature | File | How |
+|---|---|---|
+| **🎨 Cloudflare FLUX** image engine | `functions/api/image.js` | FLUX.1-schnell (Black Forest Labs) on Workers AI, about 150 free a day. The browser shrinks the 1 MB result to about 150 KB and stores it inside the chat |
+| **🗣️ Natural voice** | `speakNatural()` in `web/app.js` | **Kokoro-82M** (Hugging Face) runs in your browser through **kokoro-js**. Sentences are generated one by one, preparing the next while the current one plays. The first use downloads about 90 MB |
+| **🔗 Share a chat** | `functions/api/share.js`, `shared.js`, `web/share.html` | A secret token points to one chat. `/api/shared` is the only route that works without login, and it shows only that chat |
+| **📥 Import ChatGPT** | `functions/api/import.js`, `web/app.js` | ChatGPT's `conversations.json` stores each chat as a tree. The browser walks from the last message back to the first, then sends 10 chats at a time to the 📁 Imported folder |
+| **⌨️ Shortcuts** | `web/app.js` | Ctrl+K searches chats, Alt+N starts a new chat, "/" jumps to the message box |
+| **💻 qwen3.5:2b** | Ollama on the D drive | The best small model for a 4 GB graphics card; it can also see images |
+| **render.js** | `web/render.js` | Markdown and math rendering, shared by the main page and the share page |

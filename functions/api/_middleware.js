@@ -7,8 +7,8 @@
 import { setupDatabase, json } from "../../lib/db.js";
 import { clientIp, isLocked, addFail, validToken } from "../../lib/auth.js";
 
-// This works without logging in (it's how you log in)
-const OPEN = ["/api/login"];
+// These work without logging in: logging in itself, and viewing a chat someone shared with a link
+const OPEN = ["/api/login", "/api/shared"];
 
 export async function onRequest(context) {
   const env = context.env;

@@ -33,36 +33,7 @@ async function api(path, method, body) {
   return res;
 }
 
-// Turn markdown text into safe HTML, with math formulas drawn by KaTeX.
-//
-// Why so many steps? The markdown converter would break math ( \cdot, x_1 … ),
-// so we take the math OUT first, convert the markdown, then put the drawn math back.
-//   1. hide code blocks (math inside code must stay as code)
-//   2. find math: $$…$$, \[…\], \(…\), $…$  → draw it with KaTeX, leave a placeholder
-//   3. put the code back, convert markdown → HTML, clean it (DOMPurify)
-//   4. replace the placeholders with the drawn math
-function toHtml(text) {
-  // Some models cite like 【1†L1-L3】 — show it as a normal [1]
-  text = (text || "").replace(/【(\d+)(?:†[^】]*)?】/g, "[$1]");
-  const code = [], math = [];
-  const hideCode = (s) => { code.push(s); return "@@CODE" + (code.length - 1) + "@@"; };
-  const drawMath = (tex, display) => {
-    if (typeof katex === "undefined") return display ? "$$" + tex + "$$" : "$" + tex + "$";
-    math.push(katex.renderToString(tex.trim(), { displayMode: display, throwOnError: false }));
-    return "@@MATH" + (math.length - 1) + "@@";
-  };
-
-  text = text.replace(/```[\s\S]*?(```|$)|`[^`\n]+`/g, hideCode);
-  text = text.replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g, (all, a, b) => drawMath(a || b, true));
-  text = text.replace(/\\\(([\s\S]+?)\\\)/g, (all, a) => drawMath(a, false));
-  // $…$ only when it looks like math: no space just inside the $ signs and no digit right after
-  // (so "costs $5 and $10" stays normal text)
-  text = text.replace(/\$(?=\S)([^\n$]+?)(?<=\S)\$(?!\d)/g, (all, a) => drawMath(a, false));
-  text = text.replace(/@@CODE(\d+)@@/g, (all, i) => code[i]);
-
-  const html = DOMPurify.sanitize(marked.parse(text));
-  return html.replace(/@@MATH(\d+)@@/g, (all, i) => math[i]);
-}
+// toHtml() (markdown + math → safe HTML) lives in render.js, shared with the share page
 
 // ---------- 2. Chat list (left sidebar) ----------
 
@@ -543,25 +514,42 @@ function showAnswer(div, answer, thinking) {
   if (thinking) content.querySelector(".thinking div").textContent = thinking;
 }
 
-// Create a picture with Pollinations.ai (free, no key needed)
-// Options come from the 🎨 window (style, size, improve prompt); /image in chat uses the defaults.
+// Create a picture. Two free engines:
+//   Pollinations.ai        — unlimited, no key (the picture is loaded from their server)
+//   Cloudflare FLUX         — FLUX.1-schnell on Workers AI, sharper, ~150 a day (saved inside the chat)
+// Options come from the 🎨 window (style, size, engine, improve prompt); /image in chat uses the defaults.
 let imageOptions = null;
 async function makeImage(prompt) {
-  const opt = imageOptions || { style: "", size: "1024x1024", enhance: true };
+  const opt = imageOptions || { style: "", size: "1024x1024", enhance: true, engine: "pollinations" };
   imageOptions = null;
   const [width, height] = opt.size.split("x");
   const fullPrompt = opt.style ? prompt + ", " + opt.style : prompt;
-  const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(fullPrompt) +
-    "?width=" + width + "&height=" + height + "&nologo=true" + (opt.enhance ? "&enhance=true" : "") +
-    "&seed=" + Math.floor(Math.random() * 99999);
-  const answer = "![" + prompt.replace(/[\[\]]/g, "") + "](" + url + ")\n\n*" + prompt + "*";
+  const alt = prompt.replace(/[\[\]]/g, "");
+  let url, label;
 
-  addMessage("assistant", answer, "Pollinations.ai · image");
+  if (opt.engine === "flux") {
+    const div = addMessage("assistant", "", "Cloudflare FLUX · image");
+    div.querySelector(".content").innerHTML = '<span class="status">🎨 FLUX is painting… (about 5–10 s)</span>';
+    const res = await api("image", "POST", { prompt: fullPrompt });
+    const data = await res.json();
+    div.remove();
+    if (!res.ok) return addMessage("assistant", "⚠️ " + data.error + " — try the Pollinations engine.");
+    url = await shrinkImage(await (await fetch("data:image/jpeg;base64," + data.image)).blob());   // ~1 MB → ~150 KB
+    label = "Cloudflare FLUX · image";
+  } else {
+    url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(fullPrompt) +
+      "?width=" + width + "&height=" + height + "&nologo=true" + (opt.enhance ? "&enhance=true" : "") +
+      "&seed=" + Math.floor(Math.random() * 99999);
+    label = "Pollinations.ai · image";
+  }
+  const answer = "![" + alt + "](" + url + ")\n\n*" + prompt + "*";
+
+  addMessage("assistant", answer, label);
   history.push({ role: "assistant", content: answer });
 
   // Save both messages (the user one was not saved by /api/chat this time)
   await api("messages", "POST", { chatId: currentChatId, role: "user", content: "/image " + prompt });
-  await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: "Pollinations.ai · image" });
+  await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: label });
   scrollDown();
 }
 
@@ -815,9 +803,81 @@ $("docsInput").onchange = async () => {
 // ---------- ⬇️ Export the open chat ----------
 
 $("openExport").onclick = () => {
-  if (!history.length) return alert("Open a chat first.");
+  // download + share need an open chat; import works anytime
+  ["exportMd", "exportPdf", "shareChat", "unshareChat"].forEach((id) => ($(id).disabled = !currentChatId));
+  $("shareLink").hidden = true;
+  $("importStatus").textContent = "";
   $("exportBox").showModal();
 };
+
+// 🔗 Share: a secret read-only link to this ONE chat
+$("shareChat").onclick = async () => {
+  const { token: t } = await (await api("share", "POST", { chatId: currentChatId })).json();
+  const link = location.origin + "/share?t=" + t;
+  $("shareLink").value = link;
+  $("shareLink").hidden = false;
+  $("shareLink").select();
+  navigator.clipboard.writeText(link).catch(() => {});
+  toast("🔗 Link copied — anyone with it can read this chat");
+};
+$("unshareChat").onclick = async () => {
+  await api("share?chatId=" + currentChatId, "DELETE");
+  $("shareLink").hidden = true;
+  toast("🔒 Link turned off");
+};
+
+// 📥 Import ChatGPT history. ChatGPT stores each chat as a tree of messages ("mapping");
+// we walk from the last message back to the first to get the conversation in order.
+$("importChatGPT").onclick = () => $("importFile").click();
+$("importFile").onchange = async () => {
+  const file = $("importFile").files[0];
+  if (!file) return;
+  $("importStatus").textContent = "Reading " + file.name + "…";
+  let chats;
+  try {
+    chats = JSON.parse(await file.text()).map((conv) => {
+      const messages = [];
+      let node = conv.current_node;
+      while (node && conv.mapping[node]) {
+        const m = conv.mapping[node].message;
+        if (m && m.author && (m.author.role === "user" || m.author.role === "assistant") && m.content) {
+          const text = (m.content.parts || []).filter((p) => typeof p === "string").join("\n").trim();
+          if (text) messages.unshift({ role: m.author.role, content: text, created: Math.round((m.create_time || conv.create_time) * 1000) });
+        }
+        node = conv.mapping[node].parent;
+      }
+      return { title: conv.title, created: Math.round(conv.create_time * 1000), messages: messages };
+    }).filter((c) => c.messages.length);
+  } catch (e) {
+    $("importStatus").textContent = "❌ That doesn't look like ChatGPT's conversations.json";
+    return;
+  }
+  let done = 0;
+  for (let i = 0; i < chats.length; i += 10) {              // 10 chats per request
+    const res = await api("import", "POST", { chats: chats.slice(i, i + 10) });
+    done += (await res.json()).imported || 0;
+    $("importStatus").textContent = "Imported " + done + " / " + chats.length + " chats…";
+  }
+  $("importStatus").textContent = "✅ Imported " + done + " chats into the 📁 Imported folder";
+  $("importFile").value = "";
+  loadChats();
+};
+
+// ⌨️ Keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {        // Ctrl+K: search chats
+    e.preventDefault();
+    document.body.classList.add("menu-open");
+    $("searchChats").focus();
+  } else if (e.altKey && e.key.toLowerCase() === "n") {                 // Alt+N: new chat
+    e.preventDefault();
+    newChat();
+  } else if (e.key === "/" && !typing) {                                // "/": jump to the message box
+    e.preventDefault();
+    $("input").focus();
+  }
+});
 
 $("exportMd").onclick = () => {
   const title = $("chatTitle").textContent || "NEXUS chat";
@@ -861,7 +921,7 @@ $("openImages").onclick = () => {
 $("makeImageBtn").onclick = () => {
   const prompt = $("imgPrompt").value.trim();
   if (!prompt) return alert("Describe the picture first.");
-  imageOptions = { style: $("imgStyle").value, size: $("imgSize").value, enhance: $("imgEnhance").checked };
+  imageOptions = { style: $("imgStyle").value, size: $("imgSize").value, enhance: $("imgEnhance").checked, engine: $("imgEngine").value };
   $("imageBox").close();
   $("imgPrompt").value = "";
   send("/image " + prompt);        // same path as typing /image in the chat
@@ -1025,20 +1085,70 @@ $("micBtn").onclick = async () => {
 };
 
 // ---------- 🔊 Read answers aloud ----------
-// Uses the voice built into your browser / phone (free, works offline)
+// Two voices (switch with 🗣️ Voice in the sidebar):
+//   Browser — the voice built into your browser / phone (instant, works offline, any language)
+//   Natural — Kokoro-82M (Hugging Face), runs IN your browser with kokoro-js: sounds human,
+//             English only, downloads ~90 MB the first time (then cached)
+let voiceMode = localStorage.getItem("nexus-voice") || "browser";
+let kokoro = null, kokoroAudio = null, kokoroStop = false;
+
+$("toggleVoice").onclick = () => {
+  voiceMode = voiceMode === "browser" ? "natural" : "browser";
+  localStorage.setItem("nexus-voice", voiceMode);
+  $("toggleVoice").textContent = voiceMode === "natural" ? "🗣️ Voice: natural" : "🗣️ Voice: browser";
+  toast(voiceMode === "natural" ? "🗣️ Natural voice (Kokoro). First use downloads ~90 MB." : "🗣️ Browser voice");
+};
+$("toggleVoice").textContent = voiceMode === "natural" ? "🗣️ Voice: natural" : "🗣️ Voice: browser";
+
 function speak(text, button) {
+  // Remove markdown symbols and code blocks so it sounds natural
+  const plain = text.replace(/```[\s\S]*?```/g, " (code block) ").replace(/[#*_`>|\[\]]/g, "").replace(/\(https?:[^)]+\)/g, "");
+  const english = !/[ऀ-ॿ]/.test(plain);
+  if (voiceMode === "natural" && english) return speakNatural(plain, button);
+
   if (speechSynthesis.speaking) {          // clicking again = stop
     speechSynthesis.cancel();
     button.textContent = "🔊 Read";
     return;
   }
-  // Remove markdown symbols and code blocks so it sounds natural
-  const plain = text.replace(/```[\s\S]*?```/g, " (code block) ").replace(/[#*_`>|\[\]]/g, "").replace(/\(https?:[^)]+\)/g, "");
   const voice = new SpeechSynthesisUtterance(plain);
   voice.lang = /[ऀ-ॿ]/.test(plain) ? "hi-IN" : "en-IN";   // Hindi letters → Hindi voice
   voice.onend = () => (button.textContent = "🔊 Read");
   button.textContent = "⏹ Stop";
   speechSynthesis.speak(voice);
+}
+
+// Kokoro: the text is split into sentences; each one is turned into audio and played in order
+async function speakNatural(text, button) {
+  if (button.textContent.startsWith("⏹")) {          // clicking again = stop
+    kokoroStop = true;
+    if (kokoroAudio) kokoroAudio.pause();
+    button.textContent = "🔊 Read";
+    return;
+  }
+  kokoroStop = false;
+  button.textContent = "⏳ Loading voice…";
+  try {
+    if (!kokoro) {
+      const { KokoroTTS } = await import("https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm");
+      kokoro = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "q8", device: "wasm" });
+    }
+    button.textContent = "⏹ Stop";
+    const sentences = text.match(/[^.!?\n]+[.!?]*/g) || [text];
+    let next = kokoro.generate(sentences[0], { voice: "af_heart" });     // prepare the first sentence
+    for (let i = 0; i < sentences.length && !kokoroStop; i++) {
+      const audio = await next;
+      if (i + 1 < sentences.length) next = kokoro.generate(sentences[i + 1], { voice: "af_heart" });   // prepare the next while this one plays
+      kokoroAudio = new Audio(URL.createObjectURL(audio.toBlob()));
+      await new Promise((done) => { kokoroAudio.onended = done; kokoroAudio.onpause = done; kokoroAudio.play(); });
+    }
+  } catch (e) {
+    toast("Natural voice failed (" + e.message + ") — using the browser voice");
+    voiceMode = "browser";
+    speak(text, button);
+    return;
+  }
+  button.textContent = "🔊 Read";
 }
 
 // ---------- 5. Pop-ups and buttons ----------

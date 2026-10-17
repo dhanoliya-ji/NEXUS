@@ -36,10 +36,10 @@
     </div>
 
     <button id="newChat" class="new-chat">
-      <span class="plus">+</span> New chat
+      <span class="plus">+</span> New chat <small style="margin-left:auto;color:var(--muted)">Alt+N</small>
     </button>
 
-    <input id="searchChats" class="search" placeholder="Search chats…">
+    <input id="searchChats" class="search" placeholder="Search chats… (Ctrl+K)">
 
     <nav id="chatList"></nav>
 
@@ -51,6 +51,7 @@
       <button class="side-btn" id="openMemory">🧠 Memory</button>
       <button class="side-btn" id="openDoctor">🩺 Doctor</button>
       <button class="side-btn" id="toggleTheme">🌗 Theme</button>
+      <button class="side-btn" id="toggleVoice">🗣️ Voice</button>
       <button class="side-btn" id="openLogout">🚪 Log out</button>
     </div>
   </aside>
@@ -203,6 +204,12 @@
           <option value="1344x768">🖥️ Landscape (wallpaper)</option>
         </select>
       </label>
+      <label>Engine
+        <select id="imgEngine">
+          <option value="pollinations">Pollinations (unlimited)</option>
+          <option value="flux">Cloudflare FLUX (sharper, ~150/day)</option>
+        </select>
+      </label>
       <label class="check"><input type="checkbox" id="imgEnhance" checked> ✨ Improve my prompt</label>
     </div>
     <div class="row" style="justify-content:space-between">
@@ -239,11 +246,23 @@
   </dialog>
 
   <dialog id="exportBox">
-    <h2>⬇️ Download this chat</h2>
-    <p class="muted">Save the open chat as a file.</p>
+    <h2>⬇️ Download, share or import</h2>
+    <p class="muted">Save the open chat as a file:</p>
     <div class="row" style="justify-content:flex-start">
       <button class="primary" id="exportMd">Markdown (.md)</button>
       <button class="primary" id="exportPdf">PDF (print)</button>
+    </div>
+    <p class="muted">🔗 Share this chat with a read-only link (only this chat — nothing else):</p>
+    <div class="row" style="justify-content:flex-start">
+      <button class="primary" id="shareChat">Create link</button>
+      <button class="ghost" id="unshareChat">Turn link off</button>
+    </div>
+    <input id="shareLink" readonly hidden>
+    <p class="muted">📥 Import your ChatGPT history (ChatGPT → Settings → Data controls → Export → <code>conversations.json</code>):</p>
+    <input id="importFile" type="file" accept=".json" hidden>
+    <div class="row" style="justify-content:flex-start">
+      <button class="ghost" id="importChatGPT">Choose conversations.json</button>
+      <span id="importStatus" class="muted"></span>
     </div>
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
@@ -254,6 +273,7 @@
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
+  <script src="render.js"></script>
   <script src="runners.js"></script>
   <script src="app.js"></script>
 </body>
