@@ -253,6 +253,7 @@ async function askAI(text, choice) {
   }
 
   content.classList.remove("typing");
+  answer = answer.replace(/<think>[\s\S]*?<\/think>/, "").trim();   // don't save the thinking part
   div.dataset.raw = answer;
   decorateCode(div);
 
@@ -303,6 +304,17 @@ async function findMyPCModels() {
 
 // Draw the answer (and the "thinking" part, if the model shows it)
 function showAnswer(div, answer, thinking) {
+  // Some models (Qwen3, DeepSeek-R1) write their thinking inside <think>...</think> in the answer itself
+  if (answer.includes("<think>") || answer.includes("</think>")) {
+    const end = answer.indexOf("</think>");
+    if (end === -1) {                     // still thinking
+      thinking += answer.replace("<think>", "");
+      answer = "";
+    } else {
+      thinking += answer.slice(0, end).replace("<think>", "");
+      answer = answer.slice(end + 8).trim();
+    }
+  }
   let html = "";
   if (thinking) {
     const open = answer ? "" : " open";
