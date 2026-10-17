@@ -42,7 +42,8 @@ async function api(path, method, body) {
 //   3. put the code back, convert markdown → HTML, clean it (DOMPurify)
 //   4. replace the placeholders with the drawn math
 function toHtml(text) {
-  text = text || "";
+  // Some models cite like 【1†L1-L3】 — show it as a normal [1]
+  text = (text || "").replace(/【(\d+)(?:†[^】]*)?】/g, "[$1]");
   const code = [], math = [];
   const hideCode = (s) => { code.push(s); return "@@CODE" + (code.length - 1) + "@@"; };
   const drawMath = (tex, display) => {

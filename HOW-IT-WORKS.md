@@ -280,3 +280,13 @@ The 🧠 Memory window shows your facts, their history, your lessons and your AI
 Library skills aren't stored on the server, so the browser sends the chosen skill's text as `skillPrompt`. `prepare.js` uses it when the skill id isn't a built-in or one of your own.
 
 A GitHub Action (`update-skills.yml`) re-runs the script on the 1st of every month and opens a pull request when something changed.
+
+## 16. Better Deep Research (Phase 4)
+
+`functions/api/research.js` now works in rounds:
+1. **Plan** 4 search queries.
+2. **Search and read** the best 6 pages. A fast model **condenses each page** into up to 8 facts for the topic, and pages with nothing useful are dropped. *(Search-o1, "reason in documents")*
+3. **Reflect:** "What important information is still missing?" Up to 2 more searches fill the gaps, reading 4 more pages. *(jina-ai/node-DeepResearch, dzhng/deep-research)*
+4. **Write** the report from the condensed facts only, citing every claim as [n].
+
+It uses about 30 outside requests, within the free plan's limit of 50 per request. Condensing is spread across Groq, Cloudflare and Gemini so no single free limit runs out. The website turns odd citation styles like `【1†L1】` into `[1]`.
