@@ -29,6 +29,10 @@ NEXUS connects many free AI models (Groq, Gemini, GLM, Mistral, Cerebras, OpenRo
 | **🔐 Safety** | Browsers keep a login token, not your password. Log out everywhere. 10 wrong passwords = 15-minute lock | — |
 | **📱 Phone app** | Installable, opens offline, "Share to NEXUS" from other apps | PWA |
 | **➗ Math** | Formulas are drawn with KaTeX | — |
+| **📊 Charts** | NEXUS writes a small chart description and the site draws it (Chart.js), with a table view and PNG download | — |
+| **▶ Run Python** | Python code in answers runs in your browser (Pyodide, with numpy, pandas and matplotlib) | — |
+| **📌 Pins and 📁 folders** | Organize chats in the sidebar | — |
+| **⚡ Live progress** | The answer bubble shows each step ("🔎 Searching the web…") immediately | — |
 | **🤖 Weekly bot** | A GitHub Action checks every key each Monday and opens an issue if one breaks | — |
 | **Doctor** | Checks which API keys work | REA repo |
 | **Daily backup to D drive** | `local/backup.py` | — |

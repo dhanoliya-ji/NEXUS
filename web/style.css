@@ -94,9 +94,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .chat-item:hover, .chat-item.active { background: var(--card); color: var(--text); }
 .chat-item .name { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.chat-item .del { visibility: hidden; border: 0; background: none; color: var(--muted); padding: 0 4px; }
-.chat-item:hover .del { visibility: visible; }
-.chat-item .del:hover { color: var(--error); }
+.chat-item .actions { display: none; gap: 2px; }
+.chat-item:hover .actions { display: flex; }
+.chat-item .actions button { border: 0; background: none; padding: 0 2px; font-size: 12px; opacity: .7; }
+.chat-item .actions button:hover { opacity: 1; }
+.chat-group { margin-bottom: 4px; }
+.chat-group summary { cursor: pointer; list-style: none; padding: 8px 8px 4px; }
+.chat-group summary::-webkit-details-marker { display: none; }
+@media (hover: none) { .chat-item .actions { display: flex; } }   /* phones: always show the buttons */
 
 .sidebar-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; border-top: 1px solid var(--border); padding-top: 8px; }
 .side-btn { text-align: left; padding: 8px 10px; border: 0; background: none; border-radius: 8px; font-size: 14px; }
@@ -160,6 +165,24 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100
 }
 
 .content .status { font-family: var(--sans); font-size: 14px; color: var(--muted); font-style: italic; }
+/* 📊 Charts */
+.chart-box { margin: 12px 0; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); font-family: var(--sans); }
+.chart-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.chart-actions button { font-size: 12px; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--muted); }
+.chart-actions button:hover { color: var(--text); border-color: var(--primary); }
+.chart-table { overflow-x: auto; }
+
+/* ▶ Run Python */
+.run-code {
+  position: absolute; top: 8px; right: 64px;
+  font-size: 12px; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid #5db87280; background: #5db87220; color: #b8f0c4;
+}
+.run-code:disabled { opacity: .5; }
+.run-output { margin: -6px 0 12px; padding: 10px 14px; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 12px 12px; background: var(--card); font-family: var(--mono); font-size: 13px; }
+.run-output pre { margin: 0; white-space: pre-wrap; background: none; color: var(--text); padding: 0; }
+.run-output img { max-width: 100%; margin-top: 8px; border-radius: 8px; background: #fff; }
+
 .thinking { font-family: var(--sans); font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .thinking summary { cursor: pointer; }
 .thinking div { white-space: pre-wrap; border-left: 2px solid var(--border); padding-left: 10px; margin-top: 6px; }

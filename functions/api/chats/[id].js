@@ -13,11 +13,14 @@ export async function onRequestGet(context) {
   return json(result.results);
 }
 
-// PATCH {title} → rename
+// PATCH {title?, pinned?, folder?} → rename, pin/unpin, move to a folder
 export async function onRequestPatch(context) {
-  const { title } = await context.request.json();
-  await context.env.DB.prepare("UPDATE chats SET title = ? WHERE id = ?")
-    .bind(title.slice(0, 60), context.params.id).run();
+  const db = context.env.DB;
+  const id = context.params.id;
+  const change = await context.request.json();
+  if (change.title !== undefined) await db.prepare("UPDATE chats SET title = ? WHERE id = ?").bind(String(change.title).slice(0, 60), id).run();
+  if (change.pinned !== undefined) await db.prepare("UPDATE chats SET pinned = ? WHERE id = ?").bind(change.pinned ? 1 : 0, id).run();
+  if (change.folder !== undefined) await db.prepare("UPDATE chats SET folder = ? WHERE id = ?").bind(String(change.folder).trim().slice(0, 40), id).run();
   return json({ ok: true });
 }
 

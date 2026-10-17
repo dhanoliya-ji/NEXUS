@@ -4,10 +4,10 @@
 
 import { newId, json } from "../../lib/db.js";
 
-// GET → newest chats first
+// GET → newest chats first (with 📌 pinned and 📁 folder)
 export async function onRequestGet(context) {
   const result = await context.env.DB
-    .prepare("SELECT id, title, updated FROM chats ORDER BY updated DESC LIMIT 200")
+    .prepare("SELECT id, title, updated, pinned, folder FROM chats ORDER BY updated DESC LIMIT 300")
     .all();
   return json(result.results);
 }

@@ -207,6 +207,28 @@ A `$` followed by a digit, or with a space just inside it, counts as money, so "
 
 `callModel()` adds 1 to the `usage` table (day, provider, model) after every successful answer. `/api/usage` adds up today's counts and compares them with the approximate free limits.
 
+## 12a. Live progress (`lib/live.js`)
+
+`liveStream()` returns the stream to the browser **immediately**, then sends small messages while it works:
+- `data: {"nexus_status": "🔎 Searching the web…"}`: what NEXUS is doing right now
+- `data: {"nexus_info": {model, memories, docs, tools}}`: which model answered
+- `data: {"nexus_error": "..."}`: something failed
+
+After that comes the AI provider's own stream, copied through with `live.pipe(res.body)`. `context.waitUntil()` keeps the server working after the first bytes have been sent. In `app.js`, the stream-reading loop shows a status line until the first words arrive.
+
+## 12b. Charts and ▶ Python (`web/runners.js`)
+
+- **Charts:** the system prompt tells models to write a ```` ```chart ```` block containing simple JSON (type, labels, series). `decorateCode()` finds `code.language-chart` and replaces it with a Chart.js chart. The colors come from a colorblind-checked palette, in a fixed order, with separate light and dark versions. 📋 Table shows the exact numbers.
+- **Python:** every ```` ```python ```` block gets a ▶ Run button. Pyodide is Python compiled to run in the browser:
+  1. The first run downloads it, which takes about 10 s.
+  2. `loadPackagesFromImports()` fetches numpy, pandas and the like automatically.
+  3. `print()` output and matplotlib charts (saved as PNG) appear under the code.
+  4. It all runs on your device, with no server involved.
+
+## 12c. Pins and folders
+
+The `chats` table got two new columns: `pinned` and `folder`. `setupDatabase()` tries `ALTER TABLE … ADD COLUMN` and ignores the error if the column already exists. `PATCH /api/chats/:id` changes the title, pin or folder. `drawChatList()` groups the chats as 📌 Pinned, then each 📁 folder, then Recent.
+
 ## 12. Phone app (`web/sw.js`, `manifest.json`)
 
 - The **service worker** keeps a copy of the website files. When you're online it loads the newest files and refreshes the copy; when you're offline it shows the saved copy. It never saves `/api` requests.

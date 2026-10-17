@@ -73,24 +73,67 @@ async function loadChats() {
   drawChatList();
 }
 
+// The sidebar list: 📌 Pinned first, then each 📁 folder, then Recent
 function drawChatList() {
   const filter = $("searchChats").value.toLowerCase();
+  const chats = allChats.filter((c) => !filter || c.title.toLowerCase().includes(filter));
   $("chatList").innerHTML = "";
 
-  for (const chat of allChats) {
-    if (filter && !chat.title.toLowerCase().includes(filter)) continue;
+  const pinned = chats.filter((c) => c.pinned);
+  const folders = [...new Set(chats.filter((c) => !c.pinned && c.folder).map((c) => c.folder))].sort();
+  const recent = chats.filter((c) => !c.pinned && !c.folder);
 
-    const item = document.createElement("div");
-    item.className = "chat-item" + (chat.id === currentChatId ? " active" : "");
-    item.innerHTML = '<span class="name"></span><button class="del" title="Delete">🗑</button>';
-    item.querySelector(".name").textContent = chat.title;
-    item.onclick = () => openChat(chat.id, chat.title);
-    item.querySelector(".del").onclick = (e) => {
+  if (pinned.length) addGroup("📌 Pinned", pinned, true);
+  for (const f of folders) addGroup("📁 " + f, chats.filter((c) => !c.pinned && c.folder === f), localStorage.getItem("nexus-fold-" + f) !== "closed", f);
+  if (recent.length) addGroup("Recent", recent, true);
+}
+
+// One group of chats. Folders can be folded (remembered in this browser).
+function addGroup(title, chats, open, folderName) {
+  const group = document.createElement("details");
+  group.className = "chat-group";
+  group.open = open;
+  group.innerHTML = "<summary class='list-label'></summary>";
+  group.querySelector("summary").textContent = title + (folderName ? " (" + chats.length + ")" : "");
+  if (folderName) group.ontoggle = () => localStorage.setItem("nexus-fold-" + folderName, group.open ? "open" : "closed");
+  for (const chat of chats) group.appendChild(chatItem(chat));
+  $("chatList").appendChild(group);
+}
+
+// One chat in the list, with buttons: 📌 pin, ✏️ rename, 📁 move, 🗑 delete
+function chatItem(chat) {
+  const item = document.createElement("div");
+  item.className = "chat-item" + (chat.id === currentChatId ? " active" : "");
+  item.innerHTML = '<span class="name"></span><span class="actions">' +
+    '<button data-do="pin" title="Pin / unpin">📌</button><button data-do="rename" title="Rename">✏️</button>' +
+    '<button data-do="move" title="Move to folder">📁</button><button data-do="delete" title="Delete">🗑</button></span>';
+  item.querySelector(".name").textContent = chat.title;
+  item.onclick = () => openChat(chat.id, chat.title);
+
+  item.querySelectorAll(".actions button").forEach((btn) => {
+    btn.onclick = async (e) => {
       e.stopPropagation();          // don't also open the chat
-      deleteChat(chat.id);
+      const action = btn.dataset.do;
+      if (action === "delete") return deleteChat(chat.id);
+      let change;
+      if (action === "pin") change = { pinned: !chat.pinned };
+      if (action === "rename") {
+        const title = prompt("New name:", chat.title);
+        if (!title) return;
+        change = { title: title };
+        if (chat.id === currentChatId) $("chatTitle").textContent = title;
+      }
+      if (action === "move") {
+        const existing = [...new Set(allChats.map((c) => c.folder).filter(Boolean))];
+        const folder = prompt("Folder name (empty = no folder)" + (existing.length ? "\nYour folders: " + existing.join(", ") : ""), chat.folder || "");
+        if (folder === null) return;
+        change = { folder: folder };
+      }
+      await api("chats/" + chat.id, "PATCH", change);
+      loadChats();
     };
-    $("chatList").appendChild(item);
-  }
+  });
+  return item;
 }
 
 async function openChat(id, title) {
@@ -174,10 +217,13 @@ function addMessage(role, text, model, images) {
   return div;
 }
 
-// Color code blocks + add a "Copy" button to each
+// Color code blocks + add a "Copy" button to each.
+// Special blocks (see runners.js): ```chart becomes a chart, ```python gets a ▶ Run button.
 function decorateCode(div) {
   div.querySelectorAll("pre code").forEach((block) => {
+    if (block.classList.contains("language-chart")) return renderChart(block);
     hljs.highlightElement(block);
+    if (block.classList.contains("language-python")) addRunButton(block);
     const btn = document.createElement("button");
     btn.className = "copy-code";
     btn.textContent = "Copy";
@@ -941,6 +987,7 @@ $("toggleTheme").onclick = () => {
     (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.dataset.theme = dark ? "light" : "dark";
   localStorage.setItem("nexus-theme", document.documentElement.dataset.theme);
+  redrawCharts();          // charts use different colors in dark mode
 };
 if (localStorage.getItem("nexus-theme")) document.documentElement.dataset.theme = localStorage.getItem("nexus-theme");
 
