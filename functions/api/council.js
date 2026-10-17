@@ -5,32 +5,27 @@
 //   1. 3 different models answer the same question (at the same time)
 //   2. a "judge" model reads all 3 answers and writes one best answer
 
-import { saveMessage, json } from "../../lib/db.js";
+import { json } from "../../lib/db.js";
 import { getProvider, isReady, askModel, callModel } from "../../lib/providers.js";
-import { getProfile, searchMemory, buildSystemPrompt } from "../../lib/memory.js";
+import { prepare, infoHeaders } from "../../lib/prepare.js";
 
 // Council members (first 3 that have keys are used)
-const MEMBERS = ["groq", "zai", "nvidia", "cerebras", "mistral", "gemini", "openrouter"];
-// Who writes the final answer (first one with a key)
-const JUDGES = ["gemini", "groq", "zai", "mistral"];
+const MEMBERS = ["groq", "nvidia", "cloudflare", "zai", "cerebras", "mistral", "gemini", "openrouter"];
+// Who writes the final answer (first one with a key that works)
+const JUDGES = ["gemini", "groq", "cloudflare", "nvidia", "zai", "mistral"];
 
 export async function onRequestPost(context) {
   const env = context.env;
-  const { chatId, messages } = await context.request.json();
+  const { chatId, messages, tools } = await context.request.json();
 
-  const last = messages[messages.length - 1];
-  await saveMessage(env.DB, chatId, "user", last.content, "");
-
-  const profile = await getProfile(env.DB);
-  const memories = await searchMemory(env.DB, last.content, chatId);
-  const fullMessages = [{ role: "system", content: buildSystemPrompt(profile, memories) }].concat(messages);
-
-  // 1. Pick 3 members and ask them all at once
   const members = MEMBERS.map(getProvider).filter((p) => isReady(p, env)).slice(0, 3);
   if (members.length === 0) return json({ error: "No API keys found." }, 400);
 
+  const prep = await prepare(env, chatId, messages, tools !== false);
+
+  // 1. Ask all members at once
   const results = await Promise.allSettled(
-    members.map((p) => askModel(env, p, p.models[0], fullMessages, 1500))
+    members.map((p) => askModel(env, p, p.models[0], prep.fullMessages, 1500))
   );
 
   let answers = "";
@@ -44,7 +39,7 @@ export async function onRequestPost(context) {
   if (!answers) return json({ error: "No council member could answer." }, 502);
 
   // 2. The judge combines them, streamed back word by word
-  const judgeMessages = fullMessages.concat([
+  const judgeMessages = prep.fullMessages.concat([
     {
       role: "user",
       content:
@@ -58,13 +53,7 @@ export async function onRequestPost(context) {
     try {
       const res = await callModel(env, judge, judge.models[0], judgeMessages, true);
       if (res.ok) {
-        return new Response(res.body, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "x-nexus-model": "Council: " + names.join(", ") + " → " + judge.name,
-            "x-nexus-memories": String(memories.length),
-          },
-        });
+        return new Response(res.body, { headers: infoHeaders("Council: " + names.join(", ") + " → " + judge.name, prep) });
       }
     } catch (e) {
       // try the next judge

@@ -12,6 +12,9 @@ NEXUS connects many free AI models (Groq, Gemini, GLM, Mistral, Cerebras, OpenRo
 | **Smart router + auto-fallback** | Code questions go to code models, long chats go to Gemini (1M tokens), and it moves to the next model when one is busy | FrugalGPT, RouteLLM papers |
 | **Council mode** | 3 AIs answer, then a judge combines the best answer | Mixture-of-Agents paper |
 | **Memory across chats** | An auto-updating "About me" profile, plus a search over old chats before every answer | MemGPT, RAG papers |
+| **10 free tools** | Web search, read web page, Wikipedia, weather, currency, crypto, dictionary, news, arXiv papers, books. A small model decides which ones a question needs. Every tool has backup sources | Toolformer, ReAct papers; public-apis repo |
+| **Deep Research** | `/research topic`: plan → search → read 8 pages → report with [1] citations | gpt-researcher repo, STORM paper |
+| **💻 My PC models** | On your laptop, the website can also use Ollama models: private and offline | — |
 | **Image generation** | Type `/image a cat astronaut` | Pollinations.ai (free) |
 | **Doctor** | Checks which API keys work | REA repo |
 | **Daily backup to D drive** | `local/backup.py` | — |

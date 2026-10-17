@@ -27,3 +27,7 @@ OLLAMA_URL=http://localhost:11434/v1/chat/completions
 
 # Only on your laptop: your website link, used by the D drive backup script
 NEXUS_URL=
+
+# Web search (free, no card): https://app.tavily.com  and  https://jina.ai/api-dashboard
+TAVILY_API_KEY=
+JINA_API_KEY=

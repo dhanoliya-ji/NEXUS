@@ -17,6 +17,15 @@ Open each link, sign up, create a key, and copy it somewhere safe. **Never share
 
 GitHub Models was retired on July 30, 2026, so it is no longer used.
 
+**For good web search (recommended, both free, no card):**
+
+| Key | Where | Why |
+|---|---|---|
+| `TAVILY_API_KEY` | https://app.tavily.com → sign up → copy the key (`tvly-...`) | 1000 web searches/month. Without it, the live site mostly searches only Wikipedia, because DuckDuckGo blocks Cloudflare's servers |
+| `JINA_API_KEY` | https://jina.ai/api-dashboard → copy the key (`jina_...`) | Better page reading for Deep Research, plus a backup search engine |
+
+After adding new keys, upload them: `npx wrangler pages secret put TAVILY_API_KEY --project-name nexus`
+
 ## Step 2: Put the keys in `.dev.vars`
 
 1. In `D:\NEXUS`, copy `.dev.vars.example` and name the copy `.dev.vars`.

@@ -106,6 +106,36 @@ db.prepare("SELECT * FROM messages WHERE chat_id = ?").bind(chatId).all()
 2. All 3 answers go to a "judge" model with this instruction: *"write one answer better than each of these"*.
 3. The judge's answer is streamed back to you.
 
+## 6b. Tools (`lib/tools.js`)
+
+Each tool is a function: **text in, text out**. For example, `weather("Jaipur")` returns the forecast as text.
+
+**How NEXUS decides which tools to use** (`useTools`):
+1. A small, fast model gets the tool list plus your last messages, and replies with JSON such as `{"tools":[{"name":"weather","input":"Jaipur"}]}`.
+2. The chosen tools run **at the same time** (`Promise.allSettled`).
+3. Their results are added to the system prompt under "FRESH RESULTS FROM TOOLS".
+4. The big model answers using them and cites the sources.
+
+**Backups:** `firstWorking([way1, way2, way3])` tries each way until one works. Free services sometimes block Cloudflare's servers, so every tool has 2 or 3 sources. Search results also pass `looksRelevant()`, which throws away junk.
+
+**Add a tool:** write `async function myTool(input) { ... return "text" }`, then add `my_tool: { about: "...", run: myTool }` to `TOOLS`. Test it at `/api/tool?name=my_tool&input=hello`.
+
+## 6c. Deep Research (`functions/api/research.js`)
+
+1. **Plan:** a fast model writes 4 search queries.
+2. **Search:** all 4 at once, keeping the best 3 links each (8 max).
+3. **Read:** Jina Reader downloads all 8 pages at once.
+4. **Write:** Gemini (1M tokens) reads everything and writes a report citing [1], [2]…
+
+## 6d. 💻 My PC models
+
+Cloudflare can't reach your laptop, but your browser can.
+1. When the page loads, `findMyPCModels()` asks `http://localhost:11434/api/tags`. If Ollama answers, its models appear in the dropdown.
+2. When you choose one, the browser first calls `/api/context`. That saves your message and returns the system prompt with memory and tools.
+3. The browser then streams the answer from Ollama directly.
+
+For this to work, Ollama must trust the site. The Windows setting `OLLAMA_ORIGINS` lists the NEXUS link, and models are stored on `D:\OllamaModels` (`OLLAMA_MODELS`).
+
 ## 7. The website (`web/app.js`)
 
 | Function | What it does |

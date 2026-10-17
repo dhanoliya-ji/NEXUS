@@ -170,7 +170,8 @@ async function send(text) {
 
   try {
     if (text.startsWith("/image ")) await makeImage(text.slice(7));
-    else await askAI(text);
+    else if (text.startsWith("/research ")) await askAI(text, "research");
+    else await askAI(text, $("modelPick").value);
   } catch (e) {
     if (e.message !== "password needed") addMessage("assistant", "⚠️ " + e.message);
   }
@@ -180,16 +181,24 @@ async function send(text) {
   loadChats();
 }
 
-// Ask the AI and show the answer word by word as it arrives
-async function askAI(text) {
-  const choice = $("modelPick").value;
-  const path = choice === "council" ? "council" : "chat";
+// What to show while waiting, for each mode
+const WAITING = {
+  council: "🏛️ Council is discussing…",
+  research: "🔬 Researching the web: planning → searching → reading 8 pages → writing (about 30–60 s)…",
+};
 
-  const div = addMessage("assistant", "", choice === "council" ? "Council is discussing…" : "Thinking…");
+// Ask the AI and show the answer word by word as it arrives
+//   choice = "auto" | "council" | "research" | "groq/model…" | "pc/qwen3:4b"
+async function askAI(text, choice) {
+  const div = addMessage("assistant", "", WAITING[choice] || "Thinking…");
   const content = div.querySelector(".content");
   content.classList.add("typing");
 
-  const res = await api(path, "POST", { chatId: currentChatId, messages: history, model: choice });
+  const body = { chatId: currentChatId, messages: history, model: choice, tools: toolsOn };
+  let res;
+  if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
+  else res = await api(choice === "council" || choice === "research" ? choice : "chat", "POST", body);
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     content.classList.remove("typing");
@@ -199,9 +208,20 @@ async function askAI(text) {
     return;
   }
 
-  const modelName = res.headers.get("x-nexus-model") || "";
-  const memCount = res.headers.get("x-nexus-memories");
-  div.querySelector(".model").textContent = modelName + (memCount > 0 ? " · used " + memCount + " memories" : "");
+  // Info about the answer (sent by our backend in headers)
+  const modelName = decodeURIComponent(res.headers.get("x-nexus-model") || res.nexusModel || "");
+  const memCount = res.headers.get("x-nexus-memories") || res.nexusMemories;
+  const toolsUsed = res.headers.get("x-nexus-tools") || res.nexusTools;
+  let info = modelName;
+  if (memCount > 0) info += " · used " + memCount + " memories";
+  div.querySelector(".model").innerHTML = "";
+  div.querySelector(".model").textContent = info;
+  if (toolsUsed) {
+    const tag = document.createElement("span");
+    tag.className = "used-tools";
+    tag.textContent = " · 🛠 " + toolsUsed.replace(/_/g, " ");
+    div.querySelector(".model").appendChild(tag);
+  }
 
   // Read the stream. It arrives as lines like:  data: {"choices":[{"delta":{"content":"Hel"}}]}
   let answer = "";
@@ -239,6 +259,46 @@ async function askAI(text) {
   // Save the answer (and let NEXUS update its memory in the background)
   history.push({ role: "assistant", content: answer });
   await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: modelName, userText: text });
+}
+
+// ---------- 💻 My PC: Ollama models running on your laptop ----------
+// Cloudflare can't reach your laptop, but your BROWSER can (when you're on it).
+// So: NEXUS backend gives the instructions (memory + tools), then the browser
+// asks Ollama on http://localhost:11434 directly.
+
+const OLLAMA = "http://localhost:11434";
+
+async function askMyPC(model, body) {
+  const ctxRes = await api("context", "POST", body);
+  const ctx = await ctxRes.json();
+  const res = await fetch(OLLAMA + "/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: model, stream: true, messages: [{ role: "system", content: ctx.system }].concat(history) }),
+  });
+  // Ollama doesn't send our info headers, so we attach the info ourselves
+  res.nexusModel = "My PC · " + model;
+  res.nexusMemories = ctx.memories;
+  res.nexusTools = ctx.tools.join(", ");
+  return res;
+}
+
+// Check if Ollama is running on this computer; if yes, add its models to the dropdown
+async function findMyPCModels() {
+  try {
+    const res = await fetch(OLLAMA + "/api/tags", { signal: AbortSignal.timeout(1500) });
+    const data = await res.json();
+    if (!data.models.length) return;
+    const group = document.createElement("optgroup");
+    group.label = "💻 My PC (Ollama, private)";
+    for (const m of data.models) {
+      const opt = document.createElement("option");
+      opt.value = "pc/" + m.name;
+      opt.textContent = m.name;
+      group.appendChild(opt);
+    }
+    $("modelPick").appendChild(group);
+  } catch (e) { /* Ollama not running or not on this computer — that's fine */ }
 }
 
 // Draw the answer (and the "thinking" part, if the model shows it)
@@ -362,9 +422,23 @@ async function loadModels() {
     opt.textContent = m.model;
     groups[m.provider].appendChild(opt);
   }
+  await findMyPCModels();
   select.value = localStorage.getItem("nexus-model") || "auto";
-  if (!select.value) select.value = "auto";
+  if (!select.value) select.value = "auto";   // saved model no longer exists
 }
+
+// 🌐 Tools button: on = NEXUS may search the web, check weather, news…
+let toolsOn = localStorage.getItem("nexus-tools") !== "off";
+function drawToolsButton() {
+  $("toolsBtn").classList.toggle("on", toolsOn);
+  $("toolsBtn").title = toolsOn ? "Tools ON: web search, weather, news… (click to turn off)" : "Tools OFF (click to turn on)";
+}
+$("toolsBtn").onclick = () => {
+  toolsOn = !toolsOn;
+  localStorage.setItem("nexus-tools", toolsOn ? "on" : "off");
+  drawToolsButton();
+};
+drawToolsButton();
 $("modelPick").onchange = () => localStorage.setItem("nexus-model", $("modelPick").value);
 
 // ---------- Start ----------
