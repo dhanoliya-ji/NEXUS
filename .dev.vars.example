@@ -1,0 +1,30 @@
+# ------------------------------------------------------------
+#  NEXUS secret keys
+#  1. Copy this file and name the copy:  .dev.vars
+#  2. Paste each key after the = sign (no spaces, no quotes)
+#  3. Leave a line empty if you don't have that key yet
+#  .dev.vars is in .gitignore, so it is never uploaded to GitHub.
+# ------------------------------------------------------------
+
+# Password to open your NEXUS website (make up any strong password)
+NEXUS_PASSWORD=
+
+# Free AI providers (see SETUP.md for where to get each one)
+GROQ_API_KEY=
+GEMINI_API_KEY=
+OPENROUTER_API_KEY=
+ZAI_API_KEY=
+MISTRAL_API_KEY=
+CEREBRAS_API_KEY=
+GITHUB_TOKEN=
+
+# Optional extras
+NVIDIA_API_KEY=
+CF_ACCOUNT_ID=
+CF_API_TOKEN=
+
+# Only on your laptop: lets NEXUS use Ollama models running on your PC
+OLLAMA_URL=http://localhost:11434/v1/chat/completions
+
+# Only on your laptop: your website link, used by the D drive backup script
+NEXUS_URL=

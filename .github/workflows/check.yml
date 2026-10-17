@@ -1,0 +1,18 @@
+# Runs on GitHub (free) every time code is pushed:
+# checks for syntax errors and makes sure no API key was uploaded by mistake.
+name: Check code
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check.js
+      - run: python3 -m py_compile local/backup.py

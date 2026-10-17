@@ -1,0 +1,13 @@
+{
+  "name": "nexus",
+  "private": true,
+  "description": "NEXUS - my personal free AI agent",
+  "scripts": {
+    "dev": "wrangler pages dev --port 8788",
+    "deploy": "wrangler pages deploy",
+    "check": "node scripts/check.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  }
+}

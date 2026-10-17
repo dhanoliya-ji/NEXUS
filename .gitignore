@@ -1,0 +1,13 @@
+# Secrets — your API keys live here, NEVER upload them
+.dev.vars
+
+# Installed tools and local caches
+node_modules/
+.wrangler/
+
+# Your personal data on the D drive (backups of chats and memory)
+backup/
+
+# Python cache
+__pycache__/
+.wrangler-dev.log

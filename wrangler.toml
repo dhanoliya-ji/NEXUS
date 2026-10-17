@@ -1,0 +1,11 @@
+# Cloudflare settings for NEXUS.
+# "web" folder = the website.  "functions" folder = the backend (runs on Cloudflare).
+name = "nexus"
+pages_build_output_dir = "web"
+compatibility_date = "2025-09-01"
+
+# The free database that stores chats, messages and memory.
+[[d1_databases]]
+binding = "DB"
+database_name = "nexus-db"
+database_id = "00000000-0000-0000-0000-000000000000"
