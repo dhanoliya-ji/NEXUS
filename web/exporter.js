@@ -124,6 +124,34 @@ async function exportDocx(docs, filename, bookTitle) {
   downloadBlob(blob, safeName(filename) + ".docx");
 }
 
+// ---------- 📓 Jupyter notebook (.ipynb) ----------
+// Text → markdown cells, ```python blocks → code cells you can run in Jupyter / Google Colab.
+// (Colab: colab.research.google.com → File → Upload notebook — free GPU for PyTorch.)
+function exportNotebook(docs, filename) {
+  const cells = [];
+  const md = (text) => text.trim() && cells.push({ cell_type: "markdown", metadata: {}, source: lines(text.trim()) });
+  const lines = (text) => text.split("\n").map((l, i, all) => (i < all.length - 1 ? l + "\n" : l));
+  for (const doc of docs) {
+    md("# " + doc.title);
+    let rest = doc.markdown;
+    const re = /```(?:python|py)\n([\s\S]*?)```/g;
+    let m, last = 0;
+    while ((m = re.exec(rest))) {
+      md(rest.slice(last, m.index));
+      cells.push({ cell_type: "code", metadata: {}, execution_count: null, outputs: [], source: lines(m[1].replace(/\n$/, "")) });
+      last = re.lastIndex;
+    }
+    md(rest.slice(last));
+  }
+  const notebook = {
+    nbformat: 4, nbformat_minor: 5,
+    metadata: { kernelspec: { name: "python3", display_name: "Python 3", language: "python" }, language_info: { name: "python" }, colab: { provenance: [] } },
+    cells: cells,
+  };
+  downloadBlob(new Blob([JSON.stringify(notebook, null, 1)], { type: "application/x-ipynb+json" }), safeName(filename) + ".ipynb");
+  toast("📓 Notebook saved — open colab.research.google.com → File → Upload notebook");
+}
+
 function exportMarkdown(docs, filename) {
   const text = docs.map((d) => "# " + d.title + "\n\n" + d.markdown).join("\n\n---\n\n");
   downloadBlob(new Blob([text], { type: "text/markdown" }), safeName(filename) + ".md");

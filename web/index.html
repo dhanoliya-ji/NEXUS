@@ -84,13 +84,14 @@
       <div id="welcome">
         <img src="icon.svg" alt="" width="44" height="44">
         <h1 id="greeting">Hello</h1>
-        <p>Ask anything · <code>/image</code> to draw · <code>/research</code> for a full report with sources</p>
+        <p>Your AI/ML study partner · 🎓 Explain mode · <code>/research</code> reports · <code>/review</code> papers · 📎 CSV data for ▶ Run</p>
         <div class="chips">
-          <button class="chip">What's the weather in Jaipur this week?</button>
-          <button class="chip">Latest news about ISRO</button>
-          <button class="chip">Write a Python script to rename files</button>
-          <button class="chip">/research Best laptops for students in 2026</button>
-          <button class="chip">/image a futuristic city at sunset</button>
+          <button class="chip">Explain backpropagation step by step with code</button>
+          <button class="chip">Train a decision tree on the iris dataset and plot accuracy</button>
+          <button class="chip">Explain this paper: https://arxiv.org/abs/1706.03762</button>
+          <button class="chip">/review retrieval-augmented generation</button>
+          <button class="chip">Draw a diagram of how a RAG pipeline works</button>
+          <button class="chip">/research best open-source LLMs for coding in 2026</button>
         </div>
       </div>
     </section>
@@ -101,7 +102,7 @@
       <div class="box">
         <button id="attachBtn" type="button" class="tools-btn on" title="Attach images, PDF, Word, text or code files">📎</button>
         <input id="fileInput" type="file" multiple hidden
-               accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.html,.css,.js,.ts,.py,.java,.c,.cpp,.sql,.xml,.yaml,.yml,.log">
+               accept="image/*,.pdf,.docx,.txt,.md,.csv,.json,.html,.css,.js,.ts,.py,.java,.c,.cpp,.sql,.xml,.yaml,.yml,.log,.tsv,.ipynb">
         <button id="toolsBtn" type="button" class="tools-btn on" title="Tools: web search, weather, news… (click to turn off)">🌐</button>
         <button id="skillBtn" type="button" class="tools-btn on" title="Skills: change how NEXUS answers">🧩</button>
         <textarea id="input" rows="1" placeholder="Message NEXUS…" autofocus></textarea>
@@ -178,7 +179,7 @@
     <div id="notePreview" class="content"></div>
     <textarea id="noteEditor" hidden></textarea>
     <div class="row" style="justify-content:space-between;flex-wrap:wrap">
-      <span><button class="ghost" id="notePdf">📑 PDF</button> <button class="ghost" id="noteDocx">📄 Word</button> <button class="ghost" id="noteMd">Markdown</button> <button class="ghost" id="deleteNote">🗑 Delete</button></span>
+      <span><button class="ghost" id="notePdf">📑 PDF</button> <button class="ghost" id="noteDocx">📄 Word</button> <button class="ghost" id="noteIpynb">📓 Notebook</button> <button class="ghost" id="noteMd">Markdown</button> <button class="ghost" id="deleteNote">🗑 Delete</button></span>
       <span><button class="ghost" data-close>Close</button> <button class="primary" id="saveNote">Save note</button></span>
     </div>
   </dialog>
@@ -285,6 +286,7 @@
     <div class="row" style="justify-content:flex-start">
       <button class="primary" id="exportPrettyPdf">📑 PDF</button>
       <button class="primary" id="exportDocx">📄 Word</button>
+      <button class="primary" id="exportIpynb">📓 Notebook</button>
       <button class="ghost" id="exportMd">Markdown</button>
       <button class="ghost" id="exportPdf">Print</button>
     </div>

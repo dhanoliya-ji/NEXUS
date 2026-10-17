@@ -209,13 +209,21 @@ async function runPython(code, pre, btn) {
       pyodide = await loadPyodide({ indexURL: PYODIDE });
     }
     show("⏳ Running…");
-    await pyodide.loadPackagesFromImports(code);     // e.g. "import numpy" → downloads numpy
+    await pyodide.loadPackagesFromImports(code);     // e.g. "import numpy" → downloads numpy (sklearn, pandas, matplotlib…)
+
+    // Attached CSV/TSV/JSON files (app.js keeps them in dataFiles) → Python's virtual disk,
+    // so the code can simply do pd.read_csv("myfile.csv")
+    if (typeof dataFiles !== "undefined") {
+      for (const [name, text] of Object.entries(dataFiles)) pyodide.FS.writeFile(name, text);
+    }
 
     let printed = "";
     pyodide.setStdout({ batched: (s) => (printed += s + "\n") });
     pyodide.setStderr({ batched: (s) => (printed += s + "\n") });
     const usesPlot = /matplotlib|plt\./.test(code);
     if (usesPlot) await pyodide.runPythonAsync("import matplotlib\nmatplotlib.use('AGG')");
+    // hide library warnings (e.g. pandas "Pyarrow will become required…") so you see your results
+    await pyodide.runPythonAsync("import warnings\nwarnings.filterwarnings('ignore')");
 
     const result = await pyodide.runPythonAsync(code);
     if (result !== undefined && result !== null && !printed.trim()) printed += String(result);

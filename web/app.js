@@ -589,6 +589,7 @@ async function makeImage(prompt) {
 //   text / code files → read as-is  images → shrunk to max 1280 px, sent to a model that can see
 
 let pending = [];   // files waiting to be sent: {name, text} or {name, image}
+const dataFiles = {};   // attached CSV/TSV/JSON, full text, given to ▶ Run Python (runners.js)
 const FILE_BLOCK = /\n*<<FILE: (.+?)>>\n[\s\S]*?\n<<END FILE>>/g;
 const MAX_FILE_CHARS = 400000;   // about 100k tokens per file
 
@@ -623,6 +624,17 @@ async function readFile(file) {
   if (name.toLowerCase().endsWith(".pdf")) text = await readPdf(file);
   else if (name.toLowerCase().endsWith(".docx")) text = await readDocx(file);
   else text = await file.text();
+
+  // 📊 Data files: the FULL file goes to Python (▶ Run can do pd.read_csv("name.csv")),
+  // the AI only gets a preview — saves its memory on big datasets
+  if (/\.(csv|tsv|json)$/i.test(name)) {
+    dataFiles[name] = text;
+    const lines = text.split("\n");
+    if (lines.length > 40) {
+      text = lines.slice(0, 40).join("\n") + "\n…(preview: first 40 of " + lines.length + " lines. The full file is available to " +
+        "▶ Run Python code as '" + name + "', e.g. pd.read_csv('" + name + "'))";
+    }
+  }
 
   if (text.length > MAX_FILE_CHARS) text = text.slice(0, MAX_FILE_CHARS) + "\n…(file cut here, too long)";
   return { name: name, text: text };
@@ -834,7 +846,7 @@ $("docsInput").onchange = async () => {
 
 $("openExport").onclick = () => {
   // download + share need an open chat; import works anytime
-  ["exportPrettyPdf", "exportDocx", "exportMd", "exportPdf", "shareChat", "unshareChat"].forEach((id) => ($(id).disabled = !currentChatId));
+  ["exportPrettyPdf", "exportDocx", "exportIpynb", "exportMd", "exportPdf", "shareChat", "unshareChat"].forEach((id) => ($(id).disabled = !currentChatId));
   $("shareLink").hidden = true;
   $("importStatus").textContent = "";
   $("exportBox").showModal();

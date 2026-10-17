@@ -349,3 +349,14 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | **📚 Literature review** (dropdown, or `/review topic`) | `functions/api/litreview.js` | Plan 3 searches, collect up to 14 real papers from Hugging Face Papers sorted by year, then write an intro, timeline, comparison table, themes, open problems, what to read first and references |
 | **BibTeX** | `bibtex()` in `lib/papers.js` | Built by code from the real titles, authors, years and arXiv ids, never written by an AI, so references can't be invented |
 | **Long answers finish** | `maxOut` in `lib/providers.js` | Groq and Gemini 32k tokens, the others 16k (Z.ai 8k, the most its free plan accepts). Thinking models count their thinking toward this limit, which is why reports used to stop mid-way |
+
+## 22. AI/ML study partner, part 4: hands-on ML
+
+| Feature | File | How |
+|---|---|---|
+| **▶ Train real models in the browser** | `web/runners.js` | Pyodide loads **scikit-learn**, pandas, SciPy and matplotlib automatically when your code imports them. The built-in datasets (iris, digits, wine, breast cancer, diabetes) work offline |
+| **📊 Your data files** | `readFile()` in `web/app.js` | An attached CSV, TSV or JSON goes **in full** to Python's virtual disk, so `pd.read_csv("file.csv")` works, while the AI sees only a 40-line preview, which saves its reading space |
+| **📓 Notebook export** | `exportNotebook()` in `web/exporter.js` | A chat or note becomes an `.ipynb`: text turns into markdown cells and Python blocks into code cells. Upload it to **Google Colab** for a free GPU when you need PyTorch or TensorFlow, which can't run in a browser |
+| Library warnings hidden | `runPython()` | `warnings.filterwarnings('ignore')`, so your results come first |
+
+Tested end to end on the live site with puppeteer: login, scikit-learn code then ▶ Run (accuracy printed), CSV then pandas then ▶ Run, save as note, notebook export.
