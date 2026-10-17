@@ -3,6 +3,7 @@
 // ============================================================
 
 import { json } from "../../../lib/db.js";
+import { forget } from "../../../lib/semantic.js";
 
 // GET → all messages of this chat, oldest first
 export async function onRequestGet(context) {
@@ -32,5 +33,6 @@ export async function onRequestDelete(context) {
     db.prepare("DELETE FROM chats WHERE id = ?").bind(context.params.id),
     db.prepare("DELETE FROM chat_summaries WHERE chat_id = ?").bind(context.params.id),
   ]);
+  await forget(context.env, context.params.id).catch(() => {});   // its meaning-search memories too
   return json({ ok: true });
 }

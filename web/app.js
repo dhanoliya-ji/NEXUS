@@ -956,14 +956,43 @@ async function logout(everywhere) {
 $("logoutHere").onclick = () => logout(false);
 $("logoutAll").onclick = () => logout(true);
 
-$("openMemory").onclick = async () => {
-  const res = await api("profile");
-  $("memoryText").value = (await res.json()).text;
+// 🧠 Memory window: facts NEXUS learned (current + history)
+$("openMemory").onclick = () => {
   $("memoryBox").showModal();
+  drawFacts();
 };
-$("saveMemory").onclick = async () => {
-  await api("profile", "PUT", { text: $("memoryText").value });
-  $("memoryBox").close();
+
+async function drawFacts() {
+  const data = await (await api("facts")).json();
+  const dateOf = (ms) => new Date(ms).toLocaleDateString([], { dateStyle: "medium" });
+  $("factsList").innerHTML = data.current.length ? "" : "Nothing yet — chat a bit and NEXUS will learn about you.";
+  for (const f of data.current) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "🧠 <span></span><small></small><button title='Forget this'>🗑</button>";
+    row.querySelector("span").textContent = f.text;
+    row.querySelector("small").textContent = "since " + dateOf(f.valid_from);
+    row.querySelector("button").onclick = async () => { await api("facts/" + f.id, "DELETE"); drawFacts(); };
+    $("factsList").appendChild(row);
+  }
+  $("pastFacts").innerHTML = data.past.length ? "" : "No changes yet.";
+  for (const f of data.past) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "🕘 <span></span><small></small><button title='Delete from history'>🗑</button>";
+    row.querySelector("span").textContent = f.text;
+    row.querySelector("small").textContent = dateOf(f.valid_from) + " → " + dateOf(f.invalid_at);
+    row.querySelector("button").onclick = async () => { await api("facts/" + f.id, "DELETE"); drawFacts(); };
+    $("pastFacts").appendChild(row);
+  }
+}
+
+$("addFact").onclick = async () => {
+  const text = $("newFact").value.trim();
+  if (!text) return;
+  await api("facts", "POST", { text: text });
+  $("newFact").value = "";
+  drawFacts();
 };
 
 $("openDoctor").onclick = async () => {

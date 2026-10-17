@@ -125,13 +125,18 @@
   </dialog>
 
   <dialog id="memoryBox">
-    <h2>🧠 What NEXUS remembers about you</h2>
-    <p class="muted">NEXUS updates this automatically from your chats. You can edit it too.</p>
-    <textarea id="memoryText" rows="14" placeholder="Nothing yet — chat a bit and NEXUS will learn."></textarea>
-    <div class="row">
-      <button class="ghost" data-close>Close</button>
-      <button class="primary" id="saveMemory">Save</button>
+    <h2>🧠 What NEXUS knows about you</h2>
+    <p class="muted">Learned automatically from your chats. When something changes, the old fact moves to History.</p>
+    <div id="factsList" class="muted">Loading…</div>
+    <div class="form-row">
+      <input id="newFact" placeholder="Add a fact, e.g. User prefers short answers" style="flex:1">
+      <button class="primary" id="addFact">Add</button>
     </div>
+    <details class="new-skill">
+      <summary>🕘 History (facts that changed)</summary>
+      <div id="pastFacts" class="muted"></div>
+    </details>
+    <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>
 
   <dialog id="docsBox">

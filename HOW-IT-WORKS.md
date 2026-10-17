@@ -243,3 +243,18 @@ The `chats` table got two new columns: `pinned` and `folder`. `setupDatabase()` 
 ## Papers behind the ideas
 
 ReAct (2022), RAG (2020), MemGPT (2023), Lost in the Middle (2023), Mixture-of-Agents (2024), FrugalGPT (2023), RouteLLM (2024).
+
+## 13. Smarter memory (Phase 1)
+
+| Piece | File | Idea from |
+|---|---|---|
+| **Facts that update themselves.** After each answer, one fast call returns ADD / UPDATE / DELETE operations on your facts. Changed facts get an end date (`invalid_at`) instead of being erased, so NEXUS knows your history | `lib/facts.js` | Mem0 (2025), Zep (2025) |
+| **One memory per exchange.** Your message plus the reply is stored as one memory, with 1–3 key-fact labels and a date | `lib/semantic.js` → `rememberExchange` | LongMemEval (2024) |
+| **Search by meaning.** Qwen3-Embedding-0.6B (Hugging Face) turns text into 1024 numbers, stored in Cloudflare Vectorize | `lib/semantic.js` | RAG |
+| **Keyword + meaning merged** with Reciprocal Rank Fusion, then reordered by the bge-reranker model. Clearly unrelated notes are dropped | `fuse()`, `rerank()` | RAG-Fusion, Corrective RAG |
+| **Document parts carry their document's name**, so a part that never names its topic is still found | `rememberDoc()` | Contextual Retrieval (Anthropic) |
+| **Time-aware search.** "yesterday", "last week", "in March" filter memories by date | `timeWindow()` in `lib/memory.js` | LongMemEval |
+| **Understand step.** One fast call rewrites follow-ups into full questions, rates difficulty (0 = small talk, so no search) and picks tools | `lib/understand.js` | Rewrite-Retrieve-Read, Adaptive-RAG, Toolformer |
+| **Enough-to-answer check.** If the notes found aren't enough, NEXUS searches the web (general questions) or admits it doesn't know (personal details) | `isEnough()` in `lib/prepare.js` | CRAG, Sufficient Context (Google, 2025) |
+
+To add meaning search for old data: `POST /api/reindex?kind=chats` (and `kind=docs`). Call it again with the returned `next` offset until it says `done`.

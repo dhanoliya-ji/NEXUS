@@ -8,6 +8,7 @@
 //       of the RIGHT document to its instructions (that's "RAG").
 
 import { newId, json } from "../../lib/db.js";
+import { rememberDoc } from "../../lib/semantic.js";
 
 const PART_SIZE = 1500;
 const MAX_CHARS = 400000;
@@ -34,6 +35,8 @@ export async function onRequestPost(context) {
       db.prepare("INSERT INTO doc_chunks (doc_id, part, text) VALUES (?, ?, ?)").bind(id, i + j, part)
     ));
   }
+  // Also index by MEANING, in the background (see lib/semantic.js)
+  context.waitUntil(rememberDoc(context.env, id, name, parts).catch(() => {}));
   return json({ id: id, parts: parts.length });
 }
 

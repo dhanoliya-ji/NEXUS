@@ -9,3 +9,12 @@ compatibility_date = "2025-09-01"
 binding = "DB"
 database_name = "nexus-db"
 database_id = "a3dba2f4-1a5e-4feb-9ced-195355594a8f"
+
+# Workers AI: runs Hugging Face models (embeddings, reranker) for free (10,000 units/day)
+[ai]
+binding = "AI"
+
+# Vectorize: database for "meaning search" (free: 5 million stored numbers)
+[[vectorize]]
+binding = "VECTORS"
+index_name = "nexus-memory"
