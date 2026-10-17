@@ -258,6 +258,7 @@ async function send(text) {
   try {
     if (text.startsWith("/image ")) await makeImage(text.slice(7));
     else if (text.startsWith("/research ")) await askAI(content, "research");
+    else if (text.startsWith("/review ")) await askAI(content, "litreview");
     else if (images.length) await askAI(content, "auto", images);     // pictures → a model that can see
     else await askAI(content, $("modelPick").value);
   } catch (e) {
@@ -275,8 +276,9 @@ const WAITING = {
   research: "🔬 Researching the web: planning → searching → reading 8 pages → writing (about 30–60 s)…",
   careful: "✅ Writing a draft, then double-checking it…",
   battle: "⚔️ Two AIs are answering…",
+  litreview: "📚 Finding papers and writing a literature review (about 30–60 s)…",
 };
-const SPECIAL_MODES = ["council", "research", "careful", "battle"];
+const SPECIAL_MODES = ["council", "research", "careful", "battle", "litreview"];
 
 // Ask the AI and show the answer word by word as it arrives
 //   choice = "auto" | "council" | "research" | "careful" | "battle" | "groq/model…" | "pc/qwen3:4b"

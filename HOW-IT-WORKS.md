@@ -340,3 +340,12 @@ It uses about 30 outside requests, within the free plan's limit of 50 per reques
 | **📄 Word** | `exportDocx()` | **docx** (MIT): marked's lexer splits the markdown into blocks, and each becomes a real Word heading, paragraph, list, table or code block |
 | **📘 Study guide** | `web/notes.js` | Tick several notes to get one PDF or Word file with a cover page, a contents page and each note on its own page |
 | **📋 Templates** | `lib/skills.js` | Built-in skills: Study notes, Paper summary, Literature review, Cheat sheet, Project report |
+
+## 21. AI/ML study partner, part 3: papers and literature reviews
+
+| Feature | File | How |
+|---|---|---|
+| **📄 Paper explainer** | `lib/papers.js` → `readPaper()`, `read_paper` tool | Paste an arXiv link and NEXUS reads the **full paper** (arXiv's HTML version through Jina Reader, the PDF as backup, up to 40,000 characters) plus real metadata from Hugging Face. The answer follows: TL;DR, problem, core idea, method with equations and diagram, results, limitations, how to implement it |
+| **📚 Literature review** (dropdown, or `/review topic`) | `functions/api/litreview.js` | Plan 3 searches, collect up to 14 real papers from Hugging Face Papers sorted by year, then write an intro, timeline, comparison table, themes, open problems, what to read first and references |
+| **BibTeX** | `bibtex()` in `lib/papers.js` | Built by code from the real titles, authors, years and arXiv ids, never written by an AI, so references can't be invented |
+| **Long answers finish** | `maxOut` in `lib/providers.js` | Groq and Gemini 32k tokens, the others 16k (Z.ai 8k, the most its free plan accepts). Thinking models count their thinking toward this limit, which is why reports used to stop mid-way |

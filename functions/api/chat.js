@@ -44,7 +44,8 @@ export async function onRequestPost(context) {
       : planRoute(env, messages, model, { scores: scores, avoid: avoid, fast: prep.complexity === 0 && (!model || model === "auto") });
 
     // 3a. Hard question in Auto mode → two AIs + agreement check
-    if (prep.complexity === 2 && !hasImages && !regenerate && (!model || model === "auto")) {
+    // (not for paper explanations: the paper text is long, two models would be slow and use lots of quota)
+    if (prep.complexity === 2 && !hasImages && !regenerate && (!model || model === "auto") && !prep.toolsUsed.includes("read_paper")) {
       const done = await cascade(env, live, plan, prep);
       if (done) return;
     }
