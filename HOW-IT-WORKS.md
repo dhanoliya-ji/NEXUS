@@ -258,3 +258,17 @@ ReAct (2022), RAG (2020), MemGPT (2023), Lost in the Middle (2023), Mixture-of-A
 | **Enough-to-answer check.** If the notes found aren't enough, NEXUS searches the web (general questions) or admits it doesn't know (personal details) | `isEnough()` in `lib/prepare.js` | CRAG, Sufficient Context (Google, 2025) |
 
 To add meaning search for old data: `POST /api/reindex?kind=chats` (and `kind=docs`). Call it again with the returned `next` offset until it says `done`.
+
+## 14. Better answers for less quota (Phase 2)
+
+| Piece | File | Idea from |
+|---|---|---|
+| **Small talk** goes to the quickest model and skips searching | `planRoute(..., {fast})` | Adaptive-RAG |
+| **Hard questions (Auto mode):** two different AIs answer separately. If they agree, the answer is shown as checked. If they disagree, a third AI works out which parts are right. A failed AI is replaced by the next one | `cascade()` in `functions/api/chat.js` | Mixture-of-Thought Cascades (ICLR 2024), SelfCheckGPT |
+| "Hard" = the understand step says so, **or** the message has lots of numbers or words like "step by step", "calculate", "compare" | `looksHard()` in `lib/understand.js` | — |
+| **👍 / 👎** change a model's Elo score. 👎 with a reason becomes a **lesson** ("final answer first") that NEXUS follows from then on | `lib/ratings.js`, `lib/lessons.js` | Chatbot Arena, ACE (2025) |
+| **⚔️ Battle:** two AIs answer blind as "A" and "B". Your vote updates both Elo scores, and the router tries the best-rated AIs first | `functions/api/battle.js`, `byScore()` in `lib/router.js` | Chatbot Arena |
+| **🔄 Regenerate** asks a different AI. **✏️ Edit** removes everything after your message and sends it again | `regenerate()`, `editMessage()` in `web/app.js` | Open WebUI |
+| **Council** picks the most consistent answer and improves it, instead of blending everything | `functions/api/council.js` | Universal Self-Consistency (2023) |
+
+The 🧠 Memory window shows your facts, their history, your lessons and your AI rankings.

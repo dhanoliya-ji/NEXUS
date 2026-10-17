@@ -178,8 +178,10 @@ function drawUserBubble(div, text, images) {
   const files = [];
   const visible = text.replace(FILE_BLOCK, (all, name) => { files.push(name); return ""; }).trim();
 
-  div.innerHTML = '<div class="bubble"><div class="text"></div><div class="files"></div></div>';
+  div.innerHTML = '<button class="edit-msg" title="Edit and send again">✏️</button>' +
+    '<div class="bubble"><div class="text"></div><div class="files"></div></div>';
   div.querySelector(".text").textContent = visible;
+  div.querySelector(".edit-msg").onclick = () => editMessage(div);
   for (const name of files) {
     const chip = document.createElement("span");
     chip.className = "file-chip";
@@ -206,11 +208,17 @@ function addMessage(role, text, model, images) {
     div.innerHTML =
       '<img class="avatar" src="icon.svg" alt="">' +
       '<div class="body"><div class="content"></div>' +
-      '<div class="meta"><span class="model"></span><button class="copy">Copy</button><button class="speak">🔊 Read</button></div></div>';
+      '<div class="meta"><span class="model"></span><button class="copy">Copy</button><button class="speak">🔊 Read</button>' +
+      '<button class="up" title="Good answer">👍</button><button class="down" title="Bad answer (tell NEXUS why)">👎</button>' +
+      '<button class="again" title="Answer again with a different AI">🔄</button></div></div>';
     div.querySelector(".content").innerHTML = toHtml(text);
     div.querySelector(".model").textContent = model || "";
+    div.dataset.label = model || "";
     div.querySelector(".copy").onclick = () => copyText(div.dataset.raw || text, div.querySelector(".copy"));
     div.querySelector(".speak").onclick = () => speak(div.dataset.raw || text, div.querySelector(".speak"));
+    div.querySelector(".up").onclick = () => sendFeedback(div, true);
+    div.querySelector(".down").onclick = () => sendFeedback(div, false);
+    div.querySelector(".again").onclick = () => regenerate(div);
     decorateCode(div);
   }
   $("messages").appendChild(div);
@@ -292,19 +300,21 @@ const WAITING = {
   council: "🏛️ Council is discussing…",
   research: "🔬 Researching the web: planning → searching → reading 8 pages → writing (about 30–60 s)…",
   careful: "✅ Writing a draft, then double-checking it…",
+  battle: "⚔️ Two AIs are answering…",
 };
-const SPECIAL_MODES = ["council", "research", "careful"];
+const SPECIAL_MODES = ["council", "research", "careful", "battle"];
 
 // Ask the AI and show the answer word by word as it arrives
-//   choice = "auto" | "council" | "research" | "groq/model…" | "pc/qwen3:4b"
-async function askAI(text, choice, images) {
+//   choice = "auto" | "council" | "research" | "careful" | "battle" | "groq/model…" | "pc/qwen3:4b"
+//   extra  = { regenerate: true, avoid: "groq" }  for 🔄
+async function askAI(text, choice, images, extra) {
   const div = addMessage("assistant", "", images ? "👀 Looking at your image…" : WAITING[choice] || "Thinking…");
   const content = div.querySelector(".content");
   content.classList.add("typing");
 
   const body = {
     chatId: currentChatId, messages: history, model: choice, tools: toolsOn, images: images,
-    skill: activeSkill ? activeSkill.id : null,
+    skill: activeSkill ? activeSkill.id : null, ...(extra || {}),
   };
   let res;
   if (choice.startsWith("pc/")) res = await askMyPC(choice.slice(3), body);
@@ -326,6 +336,9 @@ async function askAI(text, choice, images) {
   let modelName = res.nexusModel || "";
   function showInfo(i) {
     modelName = i.model || "";
+    div.dataset.provider = i.providerId || "";      // for 👍 👎 ratings and 🔄
+    div.dataset.modelId = i.modelId || "";
+    div.dataset.label = modelName;
     let text = modelName;
     if (i.memories > 0) text += " · used " + i.memories + " memories";
     if (i.docs) text += " · 📚 " + i.docs;
@@ -367,6 +380,7 @@ async function askAI(text, choice, images) {
         }
         if (msg.nexus_info) { showInfo(msg.nexus_info); continue; }
         if (msg.nexus_error) { failed = true; showError(msg.nexus_error, msg.details); continue; }
+        if (msg.nexus_battle) { failed = true; showBattle(div, msg.nexus_battle, text); continue; }   // ⚔️ handled by its own view
         const delta = msg.choices[0].delta || {};
         if (delta.content) answer += delta.content;
         if (delta.reasoning_content || delta.reasoning) thinking += delta.reasoning_content || delta.reasoning;
@@ -386,6 +400,82 @@ async function askAI(text, choice, images) {
   // Save the answer (and let NEXUS update its memory in the background)
   history.push({ role: "assistant", content: answer });
   await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: answer, model: modelName, userText: text });
+}
+
+// ---------- 👍 👎 🔄 ✏️ ⚔️  Feedback that teaches NEXUS ----------
+
+// 👍 / 👎 → the model's rating goes up/down; 👎 also asks why, so NEXUS learns a lesson
+async function sendFeedback(div, good) {
+  const note = good ? "" : prompt("What was wrong? (optional — NEXUS learns from this)", "");
+  if (note === null) return;                       // clicked Cancel
+  const msgs = [...document.querySelectorAll("#messages .msg")];
+  const i = msgs.indexOf(div);
+  const question = i > 0 && history[i - 1] ? history[i - 1].content : "";
+  await api("feedback", "POST", {
+    provider: div.dataset.provider, model: div.dataset.modelId, label: div.dataset.label,
+    good: good, note: note, question: question, answer: div.dataset.raw || div.querySelector(".content").innerText,
+  });
+  div.querySelector(good ? ".up" : ".down").classList.add("chosen");
+  toast(good ? "👍 Thanks! NEXUS will prefer this AI a bit more." : "👎 Noted — NEXUS will learn from it.");
+}
+
+// 🔄 → answer the last message again with a DIFFERENT AI (only for the newest answer)
+async function regenerate(div) {
+  const msgs = [...document.querySelectorAll("#messages .msg")];
+  if (msgs[msgs.length - 1] !== div) return toast("🔄 works on the newest answer only.");
+  if (busy) return;
+  busy = true;
+  div.remove();
+  history.pop();                                   // forget the old answer
+  const lastUser = history[history.length - 1];
+  try {
+    await askAI(lastUser.content, "auto", null, { regenerate: true, avoid: div.dataset.provider || null });
+  } catch (e) { /* password pop-up */ }
+  busy = false;
+}
+
+// ✏️ → change one of your messages: everything after it is removed, then it's sent again
+async function editMessage(div) {
+  if (busy) return;
+  const msgs = [...document.querySelectorAll("#messages .msg")];
+  const i = msgs.indexOf(div);
+  const old = history[i] ? history[i].content.replace(FILE_BLOCK, "") : "";
+  const text = prompt("Edit your message:", old);
+  if (text === null || !text.trim()) return;
+  await api("chats/" + currentChatId + "/truncate", "POST", { keep: i });
+  history = history.slice(0, i);
+  msgs.slice(i).forEach((m) => m.remove());
+  send(text);
+}
+
+// ⚔️ Battle view: two answers side by side ("A" and "B"), names shown after you vote
+function showBattle(div, battle, question) {
+  const content = div.querySelector(".content");
+  content.classList.remove("typing");
+  content.innerHTML =
+    '<div class="battle"><div class="side"><b>Answer A</b><div class="a"></div></div>' +
+    '<div class="side"><b>Answer B</b><div class="b"></div></div></div>' +
+    '<div class="vote"><button data-v="a">👈 A is better</button><button data-v="tie">🤝 Tie</button><button data-v="b">B is better 👉</button></div>';
+  content.querySelector(".a").innerHTML = toHtml(battle.a.text);
+  content.querySelector(".b").innerHTML = toHtml(battle.b.text);
+  decorateCode(div);
+  div.querySelector(".model").textContent = "⚔️ Battle — names are hidden until you vote";
+
+  content.querySelectorAll(".vote button").forEach((btn) => {
+    btn.onclick = async () => {
+      const v = btn.dataset.v;
+      const winner = v === "b" ? battle.b : battle.a;
+      const loser = v === "b" ? battle.a : battle.b;
+      await api("vote", "POST", { winner: winner, loser: loser, tie: v === "tie" });
+      content.querySelector(".vote").innerHTML = "✅ A = " + battle.a.name + " · B = " + battle.b.name;
+      // The chosen answer becomes the answer of this chat (and NEXUS learns from it)
+      div.dataset.raw = winner.text;
+      div.dataset.provider = winner.provider;
+      div.dataset.modelId = winner.model;
+      history.push({ role: "assistant", content: winner.text });
+      await api("messages", "POST", { chatId: currentChatId, role: "assistant", content: winner.text, model: winner.name + " (⚔️ winner)", userText: question });
+    };
+  });
 }
 
 // ---------- 💻 My PC: Ollama models running on your laptop ----------
@@ -985,6 +1075,32 @@ async function drawFacts() {
     row.querySelector("button").onclick = async () => { await api("facts/" + f.id, "DELETE"); drawFacts(); };
     $("pastFacts").appendChild(row);
   }
+
+  // 📏 lessons learned from 👎
+  const lessons = await (await api("lessons")).json();
+  $("lessonsList").innerHTML = lessons.length ? "" : "None yet — press 👎 on an answer you don't like and say why.";
+  for (const l of lessons) {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "📏 <span></span><button title='Remove'>🗑</button>";
+    row.querySelector("span").textContent = l.text;
+    row.querySelector("button").onclick = async () => { await api("lessons?id=" + l.id, "DELETE"); drawFacts(); };
+    $("lessonsList").appendChild(row);
+  }
+
+  // 🏆 rankings
+  const ratings = await (await api("ratings")).json();
+  $("ratingsList").innerHTML = ratings.length ? "" : "No votes yet — use 👍👎 or ⚔️ Battle mode.";
+  ratings.forEach((r, n) => {
+    const row = document.createElement("div");
+    row.className = "doc-row";
+    row.innerHTML = "<b></b><span></span><small></small>";
+    row.querySelector("b").textContent = n + 1 + ".";
+    row.querySelector("span").textContent = r.provider + " · " + r.model;
+    row.querySelector("small").textContent = Math.round(r.elo) + " pts · ⚔️ " + r.wins + "-" + r.losses + " · 👍" + r.ups + " 👎" + r.downs +
+      (r.test_score ? " · test " + r.test_score.toFixed(1) + "/10" : "");
+    $("ratingsList").appendChild(row);
+  });
 }
 
 $("addFact").onclick = async () => {

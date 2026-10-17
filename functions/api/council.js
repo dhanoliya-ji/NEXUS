@@ -44,14 +44,17 @@ export async function onRequestPost(context) {
     live.status("⚖️ Combining " + names.length + " answers…");
     const judgeMessages = prep.fullMessages.concat([{
       role: "user",
+      // "Universal Self-Consistency" (paper, 2023): pick the answer that agrees most with the
+      // others, then improve it — blending everything tends to make answers vaguer.
       content: "Several AI models answered my last message. Here are their answers:" + answers +
-        "\n\nWrite ONE final answer that is better than each of them: keep what is correct, " +
-        "fix mistakes, combine the best ideas. Do not mention the other models.",
+        "\n\nFirst decide silently which answer is the most consistent with the others and most correct. " +
+        "Then give that answer as the final one, fixing any mistakes and adding anything important the others got right. " +
+        "Keep it concrete. Do not mention the other models.",
     }]);
     const judges = JUDGES.map(getProvider).filter((p) => isReady(p, env)).map((p) => ({ provider: p, model: p.models[0] }));
     const { res, step } = await streamFirst(env, judges, judgeMessages);
     if (!res) return live.send({ nexus_error: "No judge model available." });
-    await live.send(infoOf("Council: " + names.join(", ") + " → " + step.provider.name, prep));
+    await live.send(infoOf("Council: " + names.join(", ") + " → " + step.provider.name, prep, step));
     await live.pipe(res.body);
   });
 }

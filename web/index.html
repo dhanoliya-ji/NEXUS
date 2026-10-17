@@ -65,6 +65,7 @@
         <option value="council">🏛️ Council (3 AIs combined)</option>
         <option value="research">🔬 Deep Research (report with sources)</option>
         <option value="careful">✅ Careful (answer, then double-check)</option>
+        <option value="battle">⚔️ Battle (pick the better of 2 AIs)</option>
       </select>
       <span id="chatTitle"></span>
       <button class="icon-btn" id="openExport" title="Download this chat">⬇️</button>
@@ -135,6 +136,14 @@
     <details class="new-skill">
       <summary>🕘 History (facts that changed)</summary>
       <div id="pastFacts" class="muted"></div>
+    </details>
+    <details class="new-skill">
+      <summary>📏 How you like answers (learned from 👎)</summary>
+      <div id="lessonsList" class="muted"></div>
+    </details>
+    <details class="new-skill">
+      <summary>🏆 Your AI rankings (from 👍👎 and ⚔️)</summary>
+      <div id="ratingsList" class="muted"></div>
     </details>
     <div class="row"><button class="ghost" data-close>Close</button></div>
   </dialog>

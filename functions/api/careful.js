@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
 
     const { res, step } = await streamFirst(env, checkers, checkMessages);
     if (!res) return live.send({ nexus_error: "No model could check the draft." });
-    await live.send(infoOf("Careful: " + draft.step.provider.name + " drafted → " + step.provider.name + " checked", prep));
+    await live.send(infoOf("Careful: " + draft.step.provider.name + " drafted → " + step.provider.name + " checked", prep, step));
     await live.pipe(res.body);
   });
 }

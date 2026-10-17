@@ -165,6 +165,22 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100
 }
 
 .content .status { font-family: var(--sans); font-size: 14px; color: var(--muted); font-style: italic; }
+/* ✏️ edit button next to your messages, 👍👎🔄 under answers */
+.msg.user { align-items: flex-start; gap: 6px; }
+.edit-msg { visibility: hidden; border: 0; background: none; font-size: 13px; opacity: .6; margin-top: 8px; }
+.msg.user:hover .edit-msg { visibility: visible; }
+@media (hover: none) { .edit-msg { visibility: visible; } }
+.meta button.chosen { filter: none; transform: scale(1.2); }
+
+/* ⚔️ Battle: two answers side by side (stacked on phones) */
+.battle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.battle .side { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--bg); min-width: 0; font-size: 15px; }
+.battle .side b { font-family: var(--sans); font-size: 13px; color: var(--primary); }
+.vote { display: flex; gap: 8px; justify-content: center; margin-top: 10px; font-family: var(--sans); font-size: 14px; }
+.vote button { padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); }
+.vote button:hover { border-color: var(--primary); }
+@media (max-width: 800px) { .battle { grid-template-columns: 1fr; } }
+
 /* 📊 Charts */
 .chart-box { margin: 12px 0; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); font-family: var(--sans); }
 .chart-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
