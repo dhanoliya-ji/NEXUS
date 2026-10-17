@@ -42,6 +42,7 @@ def main():
     # Download everything
     request = urllib.request.Request(url + "/api/export")
     request.add_header("x-nexus-key", settings.get("NEXUS_PASSWORD", ""))
+    request.add_header("User-Agent", "NEXUS-backup")   # Cloudflare blocks Python's default name
     with urllib.request.urlopen(request, timeout=60) as response:
         data = json.load(response)
 

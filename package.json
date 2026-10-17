@@ -4,7 +4,7 @@
   "description": "NEXUS - my personal free AI agent",
   "scripts": {
     "dev": "wrangler pages dev --port 8788",
-    "deploy": "wrangler pages deploy",
+    "deploy": "wrangler pages deploy --project-name nexus --branch main",
     "check": "node scripts/check.js"
   },
   "devDependencies": {
