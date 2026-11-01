@@ -8,6 +8,6 @@
     "check": "node scripts/check.js"
   },
   "devDependencies": {
-    "wrangler": "^4.151.1"
+    "wrangler": "^4.156.0"
   }
 }
