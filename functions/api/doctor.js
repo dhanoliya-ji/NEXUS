@@ -13,7 +13,7 @@ export async function onRequestGet(context) {
   const checks = PROVIDERS.map(async (p) => {
     if (!isReady(p, env)) return { name: p.name, status: "no key", key: p.key };
 
-    // Try each model; a removed model (404/410) means "try the next one"
+    // Try each model; fallback to the next model on 404, 410, 429, timeout, or overload
     let last = null;
     for (const model of p.models) {
       const started = Date.now();
@@ -22,7 +22,13 @@ export async function onRequestGet(context) {
         return { name: p.name, status: "ok", model: model, ms: Date.now() - started };
       } catch (e) {
         last = { name: p.name, status: "error", model: model, error: e.message };
-        if (!e.message.endsWith("404") && !e.message.endsWith("410")) break;
+        const isTransientOrMissing = e.message.endsWith("404") ||
+          e.message.endsWith("410") ||
+          e.message.includes("429") ||
+          e.message.includes("timeout") ||
+          e.message.includes("503") ||
+          e.message.includes("overloaded");
+        if (!isTransientOrMissing) break;
       }
     }
     return last;
